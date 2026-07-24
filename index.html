@@ -492,6 +492,7 @@
       scrollbar-color: #aeb6c8 transparent;
       touch-action: pan-x pan-y;
       cursor: grab;
+      z-index: 1;
     }
 
     .workspace.panning {
@@ -722,7 +723,7 @@
     }
 
     @media (max-width: 760px) {
-      body { overflow: auto; }
+      body { overflow: hidden; }
 
       .app {
         display: flex;
@@ -754,12 +755,18 @@
       }
 
       .workspace {
-        order: 3;
+        order: 1;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: calc(58px + 64px);
+        bottom: 0;
         width: 100%;
-        height: 68vh;
-        min-height: 460px;
-        flex: 0 0 auto;
-        border-bottom: 1px solid var(--border);
+        height: auto;
+        min-height: 0;
+        flex: none;
+        border-bottom: 0;
+        z-index: 1;
       }
 
       aside {
@@ -770,6 +777,15 @@
         overflow: visible;
         border-right: 0;
         border-bottom: 1px solid var(--border);
+      }
+
+      body:not(.mobile-editor-open) aside {
+        padding: 0;
+        border: 0;
+      }
+
+      body:not(.mobile-editor-open) aside .section {
+        display: none;
       }
 
       body.mobile-editor-open {
@@ -794,10 +810,36 @@
 
       .mobile-editor-menu {
         display: grid;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        padding: 10px;
+        background: rgba(255,255,255,.96);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 14px 36px rgba(37, 46, 77, .16);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        z-index: 80;
+      }
+
+      body.mobile-editor-open .mobile-editor-menu {
         position: sticky;
+        left: auto;
+        right: auto;
+        bottom: auto;
         top: 0;
-        padding-top: 4px;
+        margin-bottom: 14px;
+        padding: 4px 0 14px;
         background: var(--panel);
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         z-index: 25;
       }
 
@@ -823,7 +865,7 @@
 <body>
   <div class="auth-screen" id="authScreen">
     <form class="auth-panel" id="loginForm">
-      <div class="auth-logo">♧</div>
+      <div class="auth-logo"></div>
       <h2>ADVERTENCIA PRIVADO</h2>
       <p>Inicia sesión para consultar y editar el arbol familiar.</p>
 
@@ -839,7 +881,7 @@
 
   <div class="app" id="app" hidden>
     <header class="brand">
-      <div class="brand-mark">♧</div>
+      <div class="brand-mark">Á</div>
       <div>
         <h1>Árbol genealógico</h1>
         <p>Developed by Turin y la Vaquita con tecnología de la NASA.</p>
@@ -848,8 +890,7 @@
 
     <header class="topbar">
       <div class="topbar-group">
-        <button class="btn btn-soft btn-icon" type="button" title="Panel">☰</button>
-        <button class="btn btn-soft" type="button" onclick="document.getElementById('autoLayout').click()">↕ Ordenar árbol</button>
+        <button class="btn btn-soft" type="button" onclick="document.getElementById('autoLayout').click()">Ordenar árbol</button>
         <button class="btn btn-soft" id="openActionsPanel" type="button">Acciones</button>
         <button class="btn btn-soft" id="openRelationsPanel" type="button">Editar relaciones</button>
         <div class="topbar-title">
@@ -863,7 +904,7 @@
       <div class="mobile-editor-menu" aria-label="Editor del árbol">
         <button id="mobilePersonTab" class="editor-tab" type="button">Agregar persona</button>
         <button id="mobileRelationTab" class="editor-tab" type="button">Agregar relación</button>
-        <button id="mobileClosePanel" class="btn btn-soft btn-icon mobile-close-panel" type="button" title="Cerrar panel">×</button>
+        <button id="mobileClosePanel" class="btn btn-soft btn-icon mobile-close-panel" type="button" title="Cerrar panel">Cerrar</button>
       </div>
 
       <section class="section accordion-section" id="personEditorSection">
@@ -899,7 +940,7 @@
           <label for="notes">Notas</label>
           <textarea id="notes" placeholder="Lugar de origen, profesión, anécdotas..."></textarea>
 
-          <button class="btn btn-primary" type="submit">＋ Guardar persona</button>
+          <button class="btn btn-primary" type="submit">Guardar persona</button>
         </form>
         </div>
       </section>
@@ -924,7 +965,7 @@
         <label for="toPerson">Persona 2</label>
         <select id="toPerson"></select>
 
-        <button id="addRelation" class="btn btn-primary" type="button">＋ Agregar relación</button>
+        <button id="addRelation" class="btn btn-primary" type="button">Agregar relación</button>
 
         <div class="relation-key">
           <span><i class="line-sample partner"></i>Pareja registrada</span>
@@ -951,12 +992,12 @@
         </button>
         <div class="accordion-panel" id="actionsPanel" hidden>
         <div class="toolbar">
-          <button id="deletePerson" class="btn btn-danger" type="button">⌫ Eliminar seleccionada</button>
-          <button id="autoLayout" class="btn btn-soft" type="button">↕ Ordenar por generaciones</button>
-          <button id="exportData" class="btn btn-soft" type="button">⇩ Guardar respaldo</button>
-          <button id="importData" class="btn btn-soft" type="button">⇧ Cargar respaldo</button>
+          <button id="deletePerson" class="btn btn-danger" type="button">Eliminar seleccionada</button>
+          <button id="autoLayout" class="btn btn-soft" type="button">Ordenar por generaciones</button>
+          <button id="exportData" class="btn btn-soft" type="button">Guardar respaldo</button>
+          <button id="importData" class="btn btn-soft" type="button">Cargar respaldo</button>
           <input id="importFile" type="file" accept=".json" hidden />
-          <button id="logout" class="btn btn-soft" type="button">↪ Cerrar sesión</button>
+          <button id="logout" class="btn btn-soft" type="button">Cerrar sesión</button>
         </div>
         </div>
       </section>
@@ -982,7 +1023,7 @@
       </div>
     </main>
 
-    <div class="canvas-hint">💡 Arrastra las tarjetas para moverlas manualmente o usa “Ordenar árbol” para organizarlas.</div>
+    <div class="canvas-hint">Arrastra las tarjetas para moverlas manualmente o usa “Ordenar árbol” para organizarlas.</div>
     <div class="tree-stats">Datos sincronizados con Supabase</div>
   </div>
 
@@ -1022,6 +1063,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     let activeTreeId = DEFAULT_TREE_ID;
     let selectedId = null;
     let dragging = null;
+    let pendingDrag = null;
     let panning = null;
     let currentSession = null;
 
@@ -2066,20 +2108,80 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const person = state.people.find(item => item.id === card.dataset.id);
       if (!person) return;
 
-      card.setPointerCapture(event.pointerId);
+      if (isMobileViewport()) {
+        pendingDrag = {
+          person,
+          card,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          originalX: person.x,
+          originalY: person.y,
+          timer: window.setTimeout(() => cancelPendingDrag(), 260)
+        };
 
-      dragging = {
+        card.setPointerCapture(event.pointerId);
+        card.addEventListener("pointermove", movePendingDrag);
+        card.addEventListener("pointerup", endPendingDrag, { once: true });
+        card.addEventListener("pointercancel", endPendingDrag, { once: true });
+        return;
+      }
+
+      startCardDrag({
         person,
         card,
+        pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
         originalX: person.x,
-        originalY: person.y,
+        originalY: person.y
+      });
+    }
+
+    function startCardDrag(details) {
+      details.card.setPointerCapture(details.pointerId);
+      dragging = {
+        person: details.person,
+        card: details.card,
+        startX: details.startX,
+        startY: details.startY,
+        originalX: details.originalX,
+        originalY: details.originalY,
         moved: false
       };
 
-      card.addEventListener("pointermove", moveDrag);
-      card.addEventListener("pointerup", endDrag, { once: true });
+      details.card.addEventListener("pointermove", moveDrag);
+      details.card.addEventListener("pointerup", endDrag, { once: true });
+      details.card.addEventListener("pointercancel", endDrag, { once: true });
+    }
+
+    function cancelPendingDrag() {
+      if (!pendingDrag) return;
+      window.clearTimeout(pendingDrag.timer);
+      pendingDrag.card.removeEventListener("pointermove", movePendingDrag);
+      pendingDrag = null;
+    }
+
+    function movePendingDrag(event) {
+      if (!pendingDrag || pendingDrag.pointerId !== event.pointerId) return;
+      if (zoomState.pointers.size > 1) {
+        cancelPendingDrag();
+        return;
+      }
+
+      const dx = event.clientX - pendingDrag.startX;
+      const dy = event.clientY - pendingDrag.startY;
+      if (Math.hypot(dx, dy) < 9) return;
+
+      const details = pendingDrag;
+      cancelPendingDrag();
+      startCardDrag(details);
+      moveDrag(event);
+    }
+
+    function endPendingDrag(event) {
+      if (pendingDrag?.pointerId !== event.pointerId) return;
+      cancelPendingDrag();
     }
 
     function moveDrag(event) {
@@ -2103,6 +2205,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     function endDrag() {
       if (!dragging) return;
       dragging.card.removeEventListener("pointermove", moveDrag);
+      dragging.card.removeEventListener("pointercancel", endDrag);
       savePersonToSupabase(dragging.person)
         .then(() => showStatus("Posición guardada"))
         .catch(error => {
@@ -2110,6 +2213,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           showStatus("No se pudo guardar");
         });
       dragging = null;
+    }
+
+    function cancelActiveDrag() {
+      if (!dragging) return;
+      dragging.card.removeEventListener("pointermove", moveDrag);
+      dragging.card.style.left = `${dragging.originalX}px`;
+      dragging.card.style.top = `${dragging.originalY}px`;
+      dragging.person.x = dragging.originalX;
+      dragging.person.y = dragging.originalY;
+      dragging = null;
+      drawConnections();
     }
 
     function clamp(value, min, max) {
@@ -2156,12 +2270,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
 
     function beginCanvasPointer(event) {
-      if (event.target.closest(".person")) return;
-
       zoomState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
       if (zoomState.pointers.size === 2) {
         event.preventDefault();
+        cancelPendingDrag();
+        cancelActiveDrag();
         const points = Array.from(zoomState.pointers.values());
         zoomState.pinchStartDistance = pointerDistance(points);
         zoomState.pinchStartZoom = zoomState.value;
@@ -2170,6 +2284,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         workspace.classList.remove("panning");
         return;
       }
+
+      if (event.target.closest(".person")) return;
 
       if (!isMobileViewport() && event.button === 0 && zoomState.pointers.size === 1) {
         panning = {
