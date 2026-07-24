@@ -7,21 +7,29 @@
   <link rel="icon" href="data:," />
   <style>
     :root {
-      --bg: #f5f7fb;
+      --bg: #f7f8fc;
       --panel: #ffffff;
-      --text: #172033;
-      --muted: #6b7280;
-      --line: #aeb8ca;
-      --accent: #4f46e5;
-      --danger: #dc2626;
-      --shadow: 0 14px 35px rgba(34, 49, 82, .12);
+      --panel-soft: #fbfcff;
+      --text: #18213a;
+      --muted: #6f7890;
+      --line: #24314f;
+      --border: #e3e7f0;
+      --accent: #5747e8;
+      --accent-2: #704ff2;
+      --accent-soft: #eeebff;
+      --danger: #e5484d;
+      --danger-soft: #fff0f0;
+      --partner: #ef174f;
+      --shadow: 0 12px 30px rgba(37, 46, 77, .10);
+      --shadow-soft: 0 5px 16px rgba(37, 46, 77, .08);
+      --sidebar: 326px;
+      --topbar: 68px;
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
 
-    [hidden] {
-      display: none !important;
-    }
+    html, body { height: 100%; }
 
     body {
       margin: 0;
@@ -32,70 +40,174 @@
     }
 
     button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
 
     .app {
       height: 100vh;
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: var(--sidebar) 1fr;
+      grid-template-rows: var(--topbar) 1fr;
+      background: var(--bg);
+    }
+
+    .brand {
+      grid-column: 1;
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      z-index: 30;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: var(--accent);
+      background: linear-gradient(145deg, #f4f1ff, #ffffff);
+      border: 1px solid #ded8ff;
+      box-shadow: var(--shadow-soft);
+      font-size: 21px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.08rem;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+
+    .topbar {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 18px;
+      background: rgba(255,255,255,.96);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      z-index: 25;
+    }
+
+    .topbar-group {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .topbar-title {
+      min-width: 0;
+      margin-left: 4px;
+    }
+
+    .topbar-title strong {
+      display: block;
+      font-size: .86rem;
+    }
+
+    .topbar-title span {
+      display: block;
+      max-width: 300px;
+      color: var(--muted);
+      font-size: .72rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     aside {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: 0;
       background: var(--panel);
-      border-right: 1px solid #e5e7eb;
-      padding: 22px;
+      border-right: 1px solid var(--border);
+      padding: 18px;
       overflow-y: auto;
       z-index: 20;
-    }
-
-    h1 {
-      font-size: 1.35rem;
-      margin: 0 0 6px;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: .9rem;
-      margin-bottom: 22px;
-      line-height: 1.45;
+      scrollbar-width: thin;
+      scrollbar-color: #c7cddd transparent;
     }
 
     .section {
-      border-top: 1px solid #e5e7eb;
-      padding-top: 18px;
-      margin-top: 18px;
+      padding: 17px 0;
+      border-top: 1px solid var(--border);
     }
 
-    .section h2 {
-      font-size: .9rem;
-      margin: 0 0 12px;
+    .section:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section h2, .section-title h2 {
+      margin: 0;
+      color: #313b57;
+      font-size: .72rem;
       text-transform: uppercase;
-      letter-spacing: .06em;
-      color: #4b5563;
+      letter-spacing: .08em;
+    }
+
+    .section-badge {
+      padding: 4px 7px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 999px;
+      font-size: .65rem;
+      font-weight: 800;
     }
 
     label {
       display: block;
-      font-size: .8rem;
-      font-weight: 700;
-      margin: 12px 0 6px;
+      margin: 10px 0 5px;
+      color: #34405e;
+      font-size: .69rem;
+      font-weight: 750;
     }
 
     input, select, textarea {
       width: 100%;
-      border: 1px solid #d7dce6;
-      border-radius: 10px;
-      padding: 10px 11px;
-      outline: none;
+      border: 1px solid #d9deea;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: var(--text);
       background: #fff;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
     }
+
+    input::placeholder, textarea::placeholder { color: #9aa3b7; }
 
     input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
+      box-shadow: 0 0 0 3px rgba(87, 71, 232, .11);
+      background: #fff;
     }
 
     textarea {
-      min-height: 70px;
+      min-height: 72px;
       resize: vertical;
     }
 
@@ -106,47 +218,178 @@
     }
 
     .btn {
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-weight: 750;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 36px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 11px;
+      font-size: .75rem;
+      font-weight: 760;
       cursor: pointer;
-      transition: transform .15s ease, opacity .15s ease;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
     }
 
     .btn:hover { transform: translateY(-1px); }
     .btn:active { transform: translateY(0); }
 
     .btn-primary {
-      background: var(--accent);
-      color: white;
       width: 100%;
-      margin-top: 14px;
+      margin-top: 13px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 18px rgba(87, 71, 232, .20);
     }
 
     .btn-soft {
-      background: #eef0ff;
-      color: #3730a3;
+      color: #303a55;
+      background: #fff;
+      border-color: #dfe3ec;
+    }
+
+    .btn-soft:hover {
+      border-color: #cdd3e2;
+      background: #fafbfe;
+      box-shadow: var(--shadow-soft);
     }
 
     .btn-danger {
-      background: #fee2e2;
-      color: #991b1b;
+      color: var(--danger);
+      background: var(--danger-soft);
+      border-color: #ffc9cc;
+    }
+
+    .btn-icon {
+      width: 36px;
+      min-width: 36px;
+      padding: 0;
+      font-size: 1rem;
+    }
+
+    .btn-top-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 7px 17px rgba(87, 71, 232, .20);
     }
 
     .toolbar {
-      display: flex;
+      display: grid;
+      gap: 7px;
+    }
+
+    .toolbar .btn { width: 100%; justify-content: flex-start; }
+
+    .relation-key {
+      display: grid;
       gap: 8px;
-      flex-wrap: wrap;
+      margin-top: 11px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--panel-soft);
+    }
+
+    .relation-key span {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: .68rem;
+    }
+
+    .line-sample {
+      width: 28px;
+      height: 0;
+      border-top: 2px solid var(--line);
+      flex: 0 0 auto;
+    }
+
+    .line-sample.partner { border-color: var(--partner); }
+    .line-sample.unregistered { border-top-style: dashed; border-color: #667085; }
+    .line-sample.selected { height: 10px; border: 2px solid var(--accent); border-radius: 4px; }
+
+    .legend {
+      color: var(--muted);
+      font-size: .69rem;
+      line-height: 1.55;
+    }
+
+
+
+    /* Editor desplegable */
+    .accordion-section {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .accordion-toggle {
+      width: 100%;
+      min-height: 52px;
+      margin: 0;
+      padding: 15px 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .accordion-toggle::after {
+      content: "⌄";
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 1rem;
+      transition: transform .18s ease;
+    }
+
+    .accordion-toggle[aria-expanded="true"]::after {
+      transform: rotate(180deg);
+    }
+
+    .accordion-panel {
+      padding-bottom: 17px;
+    }
+
+    .mobile-editor-menu {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .editor-tab {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: #4a5570;
+      font-size: .74rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .editor-tab.active {
+      color: #fff;
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 18px rgba(87, 71, 232, .18);
     }
 
     .workspace {
+      grid-column: 2;
+      grid-row: 2;
       position: relative;
+      min-width: 0;
+      min-height: 0;
       overflow: auto;
-      background:
-        linear-gradient(#e8ecf4 1px, transparent 1px),
-        linear-gradient(90deg, #e8ecf4 1px, transparent 1px);
-      background-size: 28px 28px;
+      background-color: #fbfcff;
+      background-image: radial-gradient(circle, #d7dce8 1px, transparent 1.15px);
+      background-size: 18px 18px;
+      scrollbar-width: thin;
+      scrollbar-color: #aeb6c8 transparent;
     }
 
     #canvas {
@@ -163,65 +406,78 @@
       height: 1400px;
       pointer-events: none;
       z-index: 1;
+      overflow: visible;
     }
 
     .person {
       position: absolute;
       width: 190px;
-      min-height: 118px;
-      background: var(--panel);
-      border: 1px solid #dce1ea;
-      border-radius: 16px;
-      padding: 14px;
+      min-height: 96px;
+      padding: 13px;
+      background: rgba(255,255,255,.98);
+      border: 1px solid #dce1eb;
+      border-radius: 12px;
       box-shadow: var(--shadow);
       cursor: grab;
       user-select: none;
       touch-action: none;
       z-index: 5;
+      transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .person:hover {
+      border-color: #c8cfdd;
+      box-shadow: 0 15px 34px rgba(37, 46, 77, .14);
     }
 
     .person:active { cursor: grabbing; }
 
     .person.selected {
-      outline: 3px solid rgba(79, 70, 229, .25);
       border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(87, 71, 232, .18), 0 15px 34px rgba(37, 46, 77, .14);
     }
 
     .person-header {
       display: flex;
       gap: 11px;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 0;
     }
 
     .avatar {
-      width: 44px;
-      height: 44px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      font-weight: 900;
-      color: #fff;
-      background: linear-gradient(135deg, #4f46e5, #8b5cf6);
       flex: 0 0 auto;
+      color: #fff;
+      background: linear-gradient(145deg, #6753ef, #4b39dd);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
+      font-size: .74rem;
+      font-weight: 900;
     }
 
     .person h3 {
       margin: 0;
-      font-size: 1rem;
-      line-height: 1.2;
+      font-size: .79rem;
+      line-height: 1.22;
+      letter-spacing: -.01em;
       overflow-wrap: anywhere;
     }
 
     .dates {
+      margin-top: 5px;
       color: var(--muted);
-      font-size: .78rem;
-      margin-top: 3px;
+      font-size: .62rem;
     }
 
     .notes {
-      color: #4b5563;
-      font-size: .78rem;
+      margin-top: 9px;
+      padding-top: 8px;
+      color: #59637a;
+      border-top: 1px solid #edf0f5;
+      font-size: .64rem;
       line-height: 1.35;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
@@ -230,42 +486,89 @@
     .empty {
       position: absolute;
       left: 50%;
-      top: 45%;
+      top: 43%;
       transform: translate(-50%, -50%);
-      text-align: center;
+      width: min(340px, calc(100vw - 40px));
+      padding: 22px;
       color: var(--muted);
-      background: rgba(255,255,255,.8);
-      padding: 20px 24px;
-      border-radius: 18px;
+      text-align: center;
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
       pointer-events: none;
     }
 
-    .legend {
-      font-size: .78rem;
-      color: var(--muted);
-      line-height: 1.5;
+    .canvas-hint {
+      position: fixed;
+      left: calc(var(--sidebar) + 24px);
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      max-width: min(620px, calc(100vw - var(--sidebar) - 250px));
+      padding: 9px 13px;
+      color: #59637a;
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow-soft);
+      font-size: .7rem;
+      backdrop-filter: blur(8px);
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    .tree-stats {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      color: #59637a;
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      box-shadow: var(--shadow-soft);
+      font-size: .7rem;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    .tree-stats::before {
+      content: "✓";
+      width: 17px;
+      height: 17px;
+      display: grid;
+      place-items: center;
+      color: #0ca56c;
+      border: 1px solid #55c99b;
+      border-radius: 50%;
+      font-size: .62rem;
+      font-weight: 900;
     }
 
     .status {
       position: fixed;
       right: 18px;
-      bottom: 18px;
-      background: rgba(23, 32, 51, .92);
-      color: white;
-      padding: 9px 12px;
+      bottom: 62px;
+      max-width: 320px;
+      padding: 10px 13px;
+      color: #fff;
+      background: rgba(24, 33, 58, .94);
       border-radius: 9px;
-      font-size: .8rem;
+      box-shadow: var(--shadow);
+      font-size: .72rem;
       opacity: 0;
       transform: translateY(8px);
       transition: .2s ease;
       pointer-events: none;
-      z-index: 50;
+      z-index: 60;
     }
 
-    .status.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .status.show { opacity: 1; transform: translateY(0); }
 
     .auth-screen {
       position: fixed;
@@ -273,52 +576,118 @@
       display: grid;
       place-items: center;
       padding: 24px;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(111, 79, 242, .12), transparent 35%),
+        radial-gradient(circle at 85% 85%, rgba(87, 71, 232, .10), transparent 32%),
+        var(--bg);
       z-index: 100;
     }
 
-    .auth-screen[hidden] {
-      display: none;
-    }
-
     .auth-panel {
-      width: min(100%, 360px);
-      background: var(--panel);
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 24px;
+      width: min(100%, 380px);
+      padding: 28px;
+      background: rgba(255,255,255,.96);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(37, 46, 77, .16);
     }
 
-    .auth-panel h2 {
-      margin: 0 0 6px;
-      font-size: 1.2rem;
+    .auth-logo {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 14px;
+      font-size: 24px;
     }
 
-    .auth-panel p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      font-size: .9rem;
-      line-height: 1.45;
+    .auth-panel h2 { margin: 0 0 7px; font-size: 1.2rem; }
+    .auth-panel p { margin: 0 0 19px; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+
+    @media (max-width: 920px) {
+      :root { --sidebar: 290px; }
+      .topbar-title { display: none; }
+      .canvas-hint { display: none; }
     }
 
-    @media (max-width: 800px) {
+    @media (max-width: 760px) {
       body { overflow: auto; }
 
       .app {
-        display: block;
+        display: flex;
+        flex-direction: column;
         height: auto;
+        min-height: 100vh;
+        overflow: visible;
       }
 
-      aside {
+      .brand {
+        order: 1;
         position: relative;
-        width: 100%;
+        flex: 0 0 auto;
         border-right: 0;
-        border-bottom: 1px solid #e5e7eb;
+        z-index: 50;
+      }
+
+      .topbar {
+        order: 2;
+        position: relative;
+        min-height: 58px;
+        flex: 0 0 auto;
+        border-top: 0;
+      }
+
+      .topbar .btn-icon:first-child,
+      .topbar-title {
+        display: none;
       }
 
       .workspace {
-        height: 72vh;
+        order: 3;
+        width: 100%;
+        height: 68vh;
+        min-height: 460px;
+        flex: 0 0 auto;
+        border-bottom: 1px solid var(--border);
+      }
+
+      aside {
+        order: 4;
+        width: 100%;
+        max-height: none;
+        padding: 16px;
+        overflow: visible;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .mobile-editor-menu {
+        display: grid;
+        position: sticky;
+        top: 0;
+        padding-top: 4px;
+        background: var(--panel);
+        z-index: 25;
+      }
+
+      .accordion-toggle {
+        display: none;
+      }
+
+      .accordion-panel {
+        padding-bottom: 8px;
+      }
+
+      .accordion-section {
+        border-top: 0;
+      }
+
+      .canvas-hint,
+      .tree-stats {
+        display: none;
       }
     }
   </style>
@@ -326,13 +695,14 @@
 <body>
   <div class="auth-screen" id="authScreen">
     <form class="auth-panel" id="loginForm">
-      <h2>ADVERTENCIA PRIVADO</h2>
-      <p>Inicia sesión para ver y editar el árbol genealógico.</p>
+      <div class="auth-logo">♧</div>
+      <h2>Árbol genealógico privado</h2>
+      <p>Inicia sesión para consultar y editar la historia de tu familia.</p>
 
       <label for="loginEmail">Correo</label>
       <input id="loginEmail" type="email" autocomplete="username" required />
 
-      <label for="loginPassword">Clave</label>
+      <label for="loginPassword">Contraseña</label>
       <input id="loginPassword" type="password" autocomplete="current-password" required />
 
       <button class="btn btn-primary" type="submit">Entrar</button>
@@ -340,48 +710,86 @@
   </div>
 
   <div class="app" id="app" hidden>
+    <header class="brand">
+      <div class="brand-mark">♧</div>
+      <div>
+        <h1>Árbol genealógico</h1>
+        <p>Crea y organiza tu historia familiar</p>
+      </div>
+    </header>
+
+    <header class="topbar">
+      <div class="topbar-group">
+        <button class="btn btn-soft btn-icon" type="button" title="Panel">☰</button>
+        <button class="btn btn-soft" type="button" onclick="document.getElementById('newPerson').click()">＋ Persona</button>
+        <button class="btn btn-soft" type="button" onclick="document.getElementById('autoLayout').click()">↕ Ordenar árbol</button>
+        <div class="topbar-title">
+          <strong>Vista familiar</strong>
+          <span>Parejas, progenitores y descendencia organizados por generaciones</span>
+        </div>
+      </div>
+      <div class="topbar-group">
+        <button class="btn btn-soft" type="button" onclick="document.getElementById('exportData').click()">⇩ Exportar</button>
+        <button class="btn btn-soft btn-icon" type="button" title="Cerrar sesión" onclick="document.getElementById('logout').click()">↪</button>
+      </div>
+    </header>
+
     <aside>
-      <h1>Árbol genealógico</h1>
-      <div class="subtitle">
-        Agrega personas, relaciónalas y arrastra sus tarjetas para acomodar el árbol.
+      <div class="mobile-editor-menu" aria-label="Editor del árbol">
+        <button id="mobilePersonTab" class="editor-tab active" type="button">＋ Agregar persona</button>
+        <button id="mobileRelationTab" class="editor-tab" type="button">⌁ Agregar relación</button>
       </div>
 
-      <form id="personForm">
-        <input type="hidden" id="personId" />
+      <section class="section accordion-section" id="personEditorSection">
+        <button class="section-title accordion-toggle" id="personEditorToggle" type="button" aria-expanded="true" aria-controls="personEditorPanel">
+          <h2>Agregar persona</h2>
+          <span class="section-badge">Perfil</span>
+        </button>
 
-        <label for="firstNames">Nombre(s)</label>
-        <input id="firstNames" required placeholder="Ej. María Fernanda" />
+        <div class="accordion-panel" id="personEditorPanel">
+        <form id="personForm">
+          <input type="hidden" id="personId" />
 
-        <label for="paternalLastName">Apellido paterno</label>
-        <input id="paternalLastName" required placeholder="Ej. Hernández" />
+          <label for="firstNames">Nombre(s)</label>
+          <input id="firstNames" required placeholder="Ej. María Fernanda" />
 
-        <label for="maternalLastName">Apellido materno</label>
-        <input id="maternalLastName" placeholder="Ej. López" />
+          <label for="paternalLastName">Apellido paterno</label>
+          <input id="paternalLastName" required placeholder="Ej. Hernández" />
 
-        <div class="row">
-          <div>
-            <label for="birth">Nacimiento</label>
-            <input id="birth" type="date" />
+          <label for="maternalLastName">Apellido materno</label>
+          <input id="maternalLastName" placeholder="Ej. López" />
+
+          <div class="row">
+            <div>
+              <label for="birth">Nacimiento</label>
+              <input id="birth" type="date" />
+            </div>
+            <div>
+              <label for="death">Fallecimiento</label>
+              <input id="death" type="date" />
+            </div>
           </div>
-          <div>
-            <label for="death">Fallecimiento</label>
-            <input id="death" type="date" />
-          </div>
+
+          <label for="notes">Notas</label>
+          <textarea id="notes" placeholder="Lugar de origen, profesión, anécdotas..."></textarea>
+
+          <button class="btn btn-primary" type="submit">＋ Guardar persona</button>
+        </form>
         </div>
+      </section>
 
-        <label for="notes">Notas</label>
-        <textarea id="notes" placeholder="Lugar de origen, profesión, anécdotas..."></textarea>
+      <section class="section accordion-section" id="relationEditorSection">
+        <button class="section-title accordion-toggle" id="relationEditorToggle" type="button" aria-expanded="false" aria-controls="relationEditorPanel">
+          <h2>Crear relación familiar</h2>
+          <span class="section-badge">Vínculo</span>
+        </button>
 
-        <button class="btn btn-primary" type="submit">Guardar persona</button>
-      </form>
-
-      <div class="section">
-        <h2>Crear relación</h2>
+        <div class="accordion-panel" id="relationEditorPanel" hidden>
 
         <label for="fromPerson">Persona 1</label>
         <select id="fromPerson"></select>
 
-        <label for="relationType">Relación</label>
+        <label for="relationType">Tipo de relación</label>
         <select id="relationType">
           <option value="parent">Es padre/madre de</option>
           <option value="partner">Es pareja de</option>
@@ -390,42 +798,55 @@
         <label for="toPerson">Persona 2</label>
         <select id="toPerson"></select>
 
-        <button id="addRelation" class="btn btn-primary" type="button">Agregar relación</button>
-      </div>
+        <button id="addRelation" class="btn btn-primary" type="button">＋ Agregar relación</button>
 
-      <div class="section">
-        <h2>Acciones</h2>
-        <div class="toolbar">
-          <button id="newPerson" class="btn btn-soft" type="button">Nueva persona</button>
-          <button id="deletePerson" class="btn btn-danger" type="button">Eliminar seleccionada</button>
-          <button id="autoLayout" class="btn btn-soft" type="button">Ordenar árbol</button>
-          <button id="exportData" class="btn btn-soft" type="button">Exportar</button>
-          <button id="importData" class="btn btn-soft" type="button">Importar</button>
-          <input id="importFile" type="file" accept=".json" hidden />
-          <button id="resetAll" class="btn btn-danger" type="button">Borrar todo</button>
-          <button id="logout" class="btn btn-soft" type="button">Salir</button>
+        <div class="relation-key">
+          <span><i class="line-sample partner"></i>Pareja registrada</span>
+          <span><i class="line-sample unregistered"></i>Progenitores sin relación de pareja</span>
+          <span><i class="line-sample"></i>Descendencia</span>
         </div>
-      </div>
+        </div>
+      </section>
 
-      <div class="section legend">
-        <strong>Cómo usarlo:</strong><br>
-        1. Crea a cada integrante.<br>
-        2. Selecciona dos personas y crea su relación.<br>
-        3. Arrastra las tarjetas para ordenarlas.<br>
-        4. Haz clic en una tarjeta para editarla.<br>
-        5. Exporta un respaldo en formato JSON.
-      </div>
+      <section class="section">
+        <div class="section-title">
+          <h2>Acciones</h2>
+        </div>
+        <div class="toolbar">
+          <button id="newPerson" class="btn btn-soft" type="button">＋ Nueva persona</button>
+          <button id="deletePerson" class="btn btn-danger" type="button">⌫ Eliminar seleccionada</button>
+          <button id="autoLayout" class="btn btn-soft" type="button">↕ Ordenar por generaciones</button>
+          <button id="exportData" class="btn btn-soft" type="button">⇩ Guardar respaldo</button>
+          <button id="importData" class="btn btn-soft" type="button">⇧ Cargar respaldo</button>
+          <input id="importFile" type="file" accept=".json" hidden />
+          <button id="resetAll" class="btn btn-danger" type="button">⌫ Limpiar todo</button>
+          <button id="logout" class="btn btn-soft" type="button">↪ Cerrar sesión</button>
+        </div>
+      </section>
+
+      <section class="section legend">
+        <div class="section-title"><h2>Leyenda</h2></div>
+        <div class="relation-key">
+          <span><i class="line-sample partner"></i>Pareja</span>
+          <span><i class="line-sample unregistered"></i>Progenitores sin pareja</span>
+          <span><i class="line-sample"></i>Descendencia</span>
+          <span><i class="line-sample selected"></i>Persona seleccionada</span>
+        </div>
+      </section>
     </aside>
 
     <main class="workspace" id="workspace">
       <div id="canvas">
         <svg id="connections"></svg>
         <div class="empty" id="emptyMessage">
-          <strong>Vacío</strong><br>
-        Error al conectar backend.
+          <strong>El árbol está vacío</strong><br />
+          Agrega una persona o revisa la conexión con Supabase.
         </div>
       </div>
     </main>
+
+    <div class="canvas-hint">💡 Arrastra las tarjetas para moverlas manualmente o usa “Ordenar árbol” para organizarlas.</div>
+    <div class="tree-stats">Datos sincronizados con Supabase</div>
   </div>
 
   <div class="status" id="status"></div>
@@ -934,16 +1355,52 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     function calculateGenerations() {
       const generations = new Map(state.people.map(person => [person.id, 0]));
       const parentRelations = state.relations.filter(relation => relation.type === "parent");
+      const families = buildParentFamilies();
 
-      for (let pass = 0; pass < state.people.length; pass++) {
+      // Primero calculamos la profundidad genealógica por relaciones padre/madre → hijo.
+      for (let pass = 0; pass < state.people.length * 2; pass++) {
         let changed = false;
 
         for (const relation of parentRelations) {
           const parentGeneration = generations.get(relation.from) ?? 0;
           const childGeneration = generations.get(relation.to) ?? 0;
+          const expectedChildGeneration = parentGeneration + 1;
 
-          if (childGeneration <= parentGeneration) {
-            generations.set(relation.to, parentGeneration + 1);
+          if (childGeneration < expectedChildGeneration) {
+            generations.set(relation.to, expectedChildGeneration);
+            changed = true;
+          }
+        }
+
+        if (!changed) break;
+      }
+
+      // Los progenitores de una misma familia deben aparecer en la misma generación.
+      // Después se vuelve a propagar la profundidad hacia sus descendientes.
+      for (let pass = 0; pass < state.people.length * 2; pass++) {
+        let changed = false;
+
+        for (const family of families) {
+          if (family.parents.length < 2) continue;
+          const familyGeneration = Math.max(
+            ...family.parents.map(parentId => generations.get(parentId) ?? 0)
+          );
+
+          for (const parentId of family.parents) {
+            if ((generations.get(parentId) ?? 0) !== familyGeneration) {
+              generations.set(parentId, familyGeneration);
+              changed = true;
+            }
+          }
+        }
+
+        for (const relation of parentRelations) {
+          const parentGeneration = generations.get(relation.from) ?? 0;
+          const childGeneration = generations.get(relation.to) ?? 0;
+          const expectedChildGeneration = parentGeneration + 1;
+
+          if (childGeneration < expectedChildGeneration) {
+            generations.set(relation.to, expectedChildGeneration);
             changed = true;
           }
         }
@@ -952,6 +1409,83 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
 
       return generations;
+    }
+
+    function createGenerationUnits(people, generation, generations, families) {
+      const ids = new Set(people.map(person => person.id));
+      const parent = new Map([...ids].map(id => [id, id]));
+
+      function find(id) {
+        let root = id;
+        while (parent.get(root) !== root) root = parent.get(root);
+        while (parent.get(id) !== id) {
+          const next = parent.get(id);
+          parent.set(id, root);
+          id = next;
+        }
+        return root;
+      }
+
+      function union(a, b) {
+        if (!ids.has(a) || !ids.has(b)) return;
+        const rootA = find(a);
+        const rootB = find(b);
+        if (rootA !== rootB) parent.set(rootB, rootA);
+      }
+
+      // Une a quienes comparten hijos. Así una pareja siempre se mueve como bloque.
+      for (const family of families) {
+        const sameGenerationParents = family.parents.filter(
+          id => ids.has(id) && (generations.get(id) ?? 0) === generation
+        );
+        for (let index = 1; index < sameGenerationParents.length; index++) {
+          union(sameGenerationParents[0], sameGenerationParents[index]);
+        }
+      }
+
+      // También respeta relaciones de pareja aunque todavía no tengan hijos.
+      for (const relation of state.relations) {
+        if (relation.type !== "partner") continue;
+        union(relation.from, relation.to);
+      }
+
+      const grouped = new Map();
+      for (const person of people) {
+        const root = find(person.id);
+        if (!grouped.has(root)) grouped.set(root, []);
+        grouped.get(root).push(person);
+      }
+
+      const childPosition = new Map();
+      families.forEach((family, familyIndex) => {
+        family.children.forEach((childId, childIndex) => {
+          childPosition.set(childId, {
+            familyIndex,
+            childIndex,
+            siblingCount: family.children.length
+          });
+        });
+      });
+
+      return [...grouped.values()].map(members => {
+        members.sort((a, b) => {
+          const aHasParents = childPosition.has(a.id) ? 0 : 1;
+          const bHasParents = childPosition.has(b.id) ? 0 : 1;
+          if (aHasParents !== bHasParents) return aHasParents - bHasParents;
+          return fullName(a).localeCompare(fullName(b), "es");
+        });
+
+        const genealogicalMember = members.find(member => childPosition.has(member.id));
+        const position = genealogicalMember ? childPosition.get(genealogicalMember.id) : null;
+
+        return {
+          members,
+          familyIndex: position?.familyIndex ?? Number.MAX_SAFE_INTEGER,
+          childIndex: position?.childIndex ?? Number.MAX_SAFE_INTEGER,
+          siblingCount: position?.siblingCount ?? 1,
+          targetX: null
+        };
+      });
     }
 
     async function autoLayoutTree() {
@@ -966,62 +1500,92 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
 
       const orderedGenerations = [...peopleByGeneration.keys()].sort((a, b) => a - b);
+      const minGeneration = orderedGenerations[0] ?? 0;
       const cardWidth = 190;
-      const horizontalGap = 70;
+      const partnerGap = 56;
+      const unitGap = 76;
       const verticalGap = 190;
       const startX = 120;
-      const startY = 100;
+      const startY = 90;
 
       for (const generation of orderedGenerations) {
         const people = peopleByGeneration.get(generation);
-        const childOrder = new Map();
+        const units = createGenerationUnits(people, generation, generations, families);
 
-        families.forEach((family, familyIndex) => {
-          family.children.forEach((childId, childIndex) => {
-            childOrder.set(childId, familyIndex * 100 + childIndex);
+        // Para generaciones descendientes, el objetivo horizontal se basa en el centro
+        // de la familia de origen. Esto mantiene juntos a hermanos y sus parejas.
+        for (const unit of units) {
+          const targetCenters = [];
+
+          for (const member of unit.members) {
+            const originFamily = families.find(family => family.children.includes(member.id));
+            if (!originFamily) continue;
+
+            const parentPeople = originFamily.parents
+              .map(id => state.people.find(person => person.id === id))
+              .filter(Boolean);
+            if (!parentPeople.length) continue;
+
+            const parentCenters = parentPeople.map(parentPerson => parentPerson.x + cardWidth / 2);
+            const familyCenter = parentCenters.reduce((sum, value) => sum + value, 0) / parentCenters.length;
+            const childIndex = originFamily.children.indexOf(member.id);
+            const offset = (childIndex - (originFamily.children.length - 1) / 2) * (cardWidth + unitGap);
+            targetCenters.push(familyCenter + offset);
+          }
+
+          if (targetCenters.length) {
+            unit.targetX = targetCenters.reduce((sum, value) => sum + value, 0) / targetCenters.length;
+          }
+        }
+
+        units.sort((a, b) => {
+          const targetA = a.targetX ?? Number.MAX_SAFE_INTEGER;
+          const targetB = b.targetX ?? Number.MAX_SAFE_INTEGER;
+          if (targetA !== targetB) return targetA - targetB;
+          if (a.familyIndex !== b.familyIndex) return a.familyIndex - b.familyIndex;
+          if (a.childIndex !== b.childIndex) return a.childIndex - b.childIndex;
+          return fullName(a.members[0]).localeCompare(fullName(b.members[0]), "es");
+        });
+
+        let cursorX = startX;
+
+        for (const unit of units) {
+          const unitWidth = unit.members.length * cardWidth + (unit.members.length - 1) * partnerGap;
+          const idealLeft = unit.targetX == null ? cursorX : unit.targetX - unitWidth / 2;
+          const unitLeft = Math.max(cursorX, idealLeft, startX);
+
+          unit.members.forEach((person, index) => {
+            person.x = unitLeft + index * (cardWidth + partnerGap);
+            person.y = startY + (generation - minGeneration) * verticalGap;
           });
-        });
 
-        people.sort((a, b) => {
-          const familyOrder = (childOrder.get(a.id) ?? 9999) - (childOrder.get(b.id) ?? 9999);
-          if (familyOrder !== 0) return familyOrder;
-          return fullName(a).localeCompare(fullName(b), "es");
-        });
-
-        people.forEach((person, index) => {
-          person.x = startX + index * (cardWidth + horizontalGap);
-          person.y = startY + generation * verticalGap;
-        });
+          cursorX = unitLeft + unitWidth + unitGap;
+        }
       }
 
-      const centeredFamilies = buildParentFamilies()
-        .slice()
-        .sort((a, b) => b.parents.length - a.parents.length);
-
-      for (const family of centeredFamilies) {
-        const parents = family.parents
-          .map(id => state.people.find(person => person.id === id))
-          .filter(Boolean);
-        const children = family.children
-          .map(id => state.people.find(person => person.id === id))
-          .filter(Boolean);
-        if (!parents.length || !children.length) continue;
-
-        const sortedParents = parents.slice().sort((a, b) => a.x - b.x);
-        const firstParent = sortedParents[0];
-        const lastParent = sortedParents.at(-1);
-        const parentCenter = sortedParents.length > 1
-          ? (firstParent.x + cardWidth + lastParent.x) / 2
-          : firstParent.x + cardWidth / 2;
-        const blockWidth = children.length * cardWidth + (children.length - 1) * horizontalGap;
-        const blockLeft = Math.max(startX, parentCenter - blockWidth / 2);
-
-        children
+      // Una última pasada separa cualquier colisión residual sin romper generaciones.
+      for (const generation of orderedGenerations) {
+        const row = peopleByGeneration.get(generation)
           .slice()
-          .sort((a, b) => fullName(a).localeCompare(fullName(b), "es"))
-          .forEach((child, index) => {
-            child.x = blockLeft + index * (cardWidth + horizontalGap);
-          });
+          .sort((a, b) => a.x - b.x);
+        let rightEdge = startX;
+
+        for (const person of row) {
+          if (person.x < rightEdge) person.x = rightEdge;
+          rightEdge = person.x + cardWidth + 24;
+        }
+      }
+
+      if (state.people.length) {
+        const minX = Math.min(...state.people.map(person => person.x));
+        const minY = Math.min(...state.people.map(person => person.y));
+        const offsetX = startX - minX;
+        const offsetY = startY - minY;
+
+        for (const person of state.people) {
+          person.x += offsetX;
+          person.y += offsetY;
+        }
       }
 
       render();
@@ -1490,5 +2054,57 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
     startApp();
   </script>
+
+
+  <script>
+    (() => {
+      const personToggle = document.getElementById("personEditorToggle");
+      const relationToggle = document.getElementById("relationEditorToggle");
+      const personPanel = document.getElementById("personEditorPanel");
+      const relationPanel = document.getElementById("relationEditorPanel");
+      const personTab = document.getElementById("mobilePersonTab");
+      const relationTab = document.getElementById("mobileRelationTab");
+      const aside = document.querySelector("#app > aside");
+
+      function setEditorPanel(panelName, options = {}) {
+        const showPerson = panelName === "person";
+
+        personPanel.hidden = !showPerson;
+        relationPanel.hidden = showPerson;
+        personToggle.setAttribute("aria-expanded", String(showPerson));
+        relationToggle.setAttribute("aria-expanded", String(!showPerson));
+        personTab.classList.toggle("active", showPerson);
+        relationTab.classList.toggle("active", !showPerson);
+
+        if (options.focus) {
+          const target = showPerson
+            ? document.getElementById("firstNames")
+            : document.getElementById("fromPerson");
+          requestAnimationFrame(() => target?.focus({ preventScroll: true }));
+        }
+
+        if (options.scroll && window.matchMedia("(max-width: 760px)").matches) {
+          requestAnimationFrame(() => aside?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        }
+      }
+
+      personToggle.addEventListener("click", () => setEditorPanel("person"));
+      relationToggle.addEventListener("click", () => setEditorPanel("relation"));
+      personTab.addEventListener("click", () => setEditorPanel("person", { focus: true }));
+      relationTab.addEventListener("click", () => setEditorPanel("relation", { focus: true }));
+
+      document.getElementById("newPerson")?.addEventListener("click", () => {
+        setEditorPanel("person", { scroll: true, focus: true });
+      });
+
+      document.getElementById("addRelation")?.addEventListener("click", () => {
+        setEditorPanel("relation");
+      });
+
+      // En escritorio abre Agregar persona; en móvil el árbol aparece primero y el editor debajo.
+      setEditorPanel("person");
+    })();
+  </script>
+
 </body>
 </html>
