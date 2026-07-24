@@ -334,7 +334,7 @@
     </form>
   </div>
 
-  <div class="app">
+  <div class="app" id="app" hidden>
     <aside>
       <h1>Árbol genealógico</h1>
       <div class="subtitle">
@@ -440,6 +440,7 @@
     let dragging = null;
 
     const $ = (id) => document.getElementById(id);
+    const app = $("app");
     const authScreen = $("authScreen");
     const loginForm = $("loginForm");
     const personForm = $("personForm");
@@ -456,6 +457,9 @@
       if (!supabaseClient) {
         throw new Error("Supabase no está configurado.");
       }
+
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
 
       const { error } = await supabaseClient
         .from("family_trees")
@@ -488,6 +492,15 @@
           storage: window.localStorage,
           detectSessionInUrl: false
         }
+      });
+
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          showAuthenticatedView();
+          return;
+        }
+
+        if (event === "SIGNED_OUT") showLoginView();
       });
 
       return true;
@@ -543,6 +556,16 @@
       }
     }
 
+    function showAuthenticatedView() {
+      app.hidden = false;
+      authScreen.hidden = true;
+    }
+
+    function showLoginView() {
+      app.hidden = true;
+      authScreen.hidden = false;
+    }
+
     async function getSession() {
       await initSupabase();
       if (!supabaseClient) return null;
@@ -569,11 +592,11 @@
       const session = await getSession();
 
       if (session) {
-        authScreen.hidden = true;
+        showAuthenticatedView();
         return true;
       }
 
-      authScreen.hidden = false;
+      showLoginView();
       return false;
     }
 
@@ -964,7 +987,7 @@
       try {
         await signIn($("loginEmail").value, $("loginPassword").value);
         loginForm.reset();
-        authScreen.hidden = true;
+        showAuthenticatedView();
         await startApp();
       } catch (error) {
         alert(error.message);
@@ -978,7 +1001,7 @@
       selectedId = null;
       personForm.reset();
       render();
-      authScreen.hidden = false;
+      showLoginView();
       $("loginEmail").focus();
     });
 
@@ -995,6 +1018,7 @@
       } catch (error) {
         console.error("No se pudo cargar desde Supabase:", error);
         render();
+        showLoginView();
         showStatus(error.message || "No se pudo cargar Supabase");
       }
     }
