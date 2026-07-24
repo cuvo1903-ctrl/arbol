@@ -809,6 +809,20 @@
       ].filter(Boolean).join(" ") || normalized.name || "";
     }
 
+    function editWarningText(person, data) {
+      return [
+        `ADVERTENCIA: estás a punto de editar a ${fullName(person)}.`,
+        "",
+        "Datos que se guardarán:",
+        `Nombre(s): ${data.firstNames || "-"}`,
+        `Apellido paterno: ${data.paternalLastName || "-"}`,
+        `Apellido materno: ${data.maternalLastName || "-"}`,
+        `Nacimiento: ${data.birth || "-"}`,
+        `Fallecimiento: ${data.death || "-"}`,
+        `Notas: ${data.notes || "-"}`
+      ].join("\n");
+    }
+
     function formatDate(date) {
       if (!date) return "";
       const [year, month, day] = date.split("-");
@@ -1015,6 +1029,7 @@
 
       if (id) {
         const person = state.people.find(item => item.id === id);
+        if (!confirm(editWarningText(person, data))) return;
         Object.assign(person, data);
         await savePersonToSupabase(person);
         showStatus("Persona actualizada");
