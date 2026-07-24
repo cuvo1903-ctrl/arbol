@@ -8,7 +8,12 @@ Aplicacion HTML para crear un arbol genealogico y sincronizarlo con Supabase.
 2. Ve a SQL Editor.
 3. Ejecuta el contenido de `supabase-family-trees.sql`.
 
-Los datos se guardan en la tabla `family_trees`, dentro del campo `data`.
+Los datos se guardan en tablas normalizadas:
+
+- `people`: una fila por integrante.
+- `relations`: una fila por relacion.
+
+La tabla `family_trees` queda como respaldo/migracion del formato anterior.
 
 ## Configuracion publica
 

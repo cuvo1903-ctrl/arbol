@@ -477,6 +477,121 @@
       if (error) throw error;
     }
 
+    function personToRow(person) {
+      const normalized = normalizePerson(person);
+      return {
+        id: normalized.id,
+        first_names: normalized.firstNames,
+        paternal_last_name: normalized.paternalLastName,
+        maternal_last_name: normalized.maternalLastName || null,
+        birth: normalized.birth || null,
+        death: normalized.death || null,
+        notes: normalized.notes || "",
+        x: normalized.x ?? 420,
+        y: normalized.y ?? 250,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    function rowToPerson(row) {
+      return {
+        id: row.id,
+        firstNames: row.first_names,
+        paternalLastName: row.paternal_last_name,
+        maternalLastName: row.maternal_last_name || "",
+        birth: row.birth || "",
+        death: row.death || "",
+        notes: row.notes || "",
+        x: Number(row.x ?? 420),
+        y: Number(row.y ?? 250)
+      };
+    }
+
+    function relationToRow(relation) {
+      return {
+        id: relation.id,
+        from_person_id: relation.from,
+        to_person_id: relation.to,
+        type: relation.type
+      };
+    }
+
+    function rowToRelation(row) {
+      return {
+        id: row.id,
+        from: row.from_person_id,
+        to: row.to_person_id,
+        type: row.type
+      };
+    }
+
+    async function savePersonToSupabase(person) {
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
+      const { error } = await supabaseClient
+        .from("people")
+        .upsert(personToRow(person));
+
+      if (error) throw error;
+    }
+
+    async function deletePersonFromSupabase(id) {
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
+      const { error } = await supabaseClient
+        .from("people")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    }
+
+    async function saveRelationToSupabase(relation) {
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
+      const { error } = await supabaseClient
+        .from("relations")
+        .insert(relationToRow(relation));
+
+      if (error) throw error;
+    }
+
+    async function saveAllToSupabase(message = "Guardado en Supabase") {
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
+      const { error: deleteRelationsError } = await supabaseClient
+        .from("relations")
+        .delete()
+        .not("id", "is", null);
+      if (deleteRelationsError) throw deleteRelationsError;
+
+      const { error: deletePeopleError } = await supabaseClient
+        .from("people")
+        .delete()
+        .not("id", "is", null);
+      if (deletePeopleError) throw deletePeopleError;
+
+      if (state.people.length) {
+        const { error } = await supabaseClient
+          .from("people")
+          .insert(state.people.map(personToRow));
+        if (error) throw error;
+      }
+
+      if (state.relations.length) {
+        const { error } = await supabaseClient
+          .from("relations")
+          .insert(state.relations.map(relationToRow));
+        if (error) throw error;
+      }
+
+      showStatus(message);
+    }
+
     async function initSupabase() {
       if (supabaseClient) return true;
       if (!window.supabase) throw new Error("No se pudo cargar Supabase.");
@@ -515,6 +630,32 @@
 
       const session = await getSession();
       if (!session) throw new Error("Sesión no encontrada.");
+
+      const { data: peopleRows, error: peopleError } = await supabaseClient
+        .from("people")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!peopleError && Array.isArray(peopleRows) && peopleRows.length) {
+        const { data: relationRows, error: relationsError } = await supabaseClient
+          .from("relations")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (relationsError) throw relationsError;
+
+        state = {
+          people: peopleRows.map(rowToPerson),
+          relations: (relationRows || []).map(rowToRelation)
+        };
+
+        return true;
+      }
+
+      if (peopleError && peopleError.code !== "42P01") {
+        console.error("Error leyendo people:", peopleError);
+        throw new Error(peopleError.message || "No se pudo leer Supabase.");
+      }
 
       const { data: trees, error } = await supabaseClient
         .from("family_trees")
@@ -774,25 +915,27 @@
       if (id) {
         const person = state.people.find(item => item.id === id);
         Object.assign(person, data);
+        await savePersonToSupabase(person);
         showStatus("Persona actualizada");
       } else {
         const offset = state.people.length * 28;
-        state.people.push({
+        const person = {
           id: uid(),
           ...data,
           x: 430 + offset,
           y: 180 + offset
-        });
+        };
+        state.people.push(person);
+        await savePersonToSupabase(person);
         showStatus("Persona agregada");
       }
 
       clearForm();
-      await syncState();
     });
 
     $("newPerson").addEventListener("click", clearForm);
 
-    $("deletePerson").addEventListener("click", () => {
+    $("deletePerson").addEventListener("click", async () => {
       if (!selectedId) {
         alert("Selecciona una persona primero.");
         return;
@@ -805,10 +948,10 @@
       state.relations = state.relations.filter(
         relation => relation.from !== selectedId && relation.to !== selectedId
       );
+      await deletePersonFromSupabase(selectedId);
 
       clearForm();
       showStatus("Persona eliminada");
-      syncState();
     });
 
     $("addRelation").addEventListener("click", async () => {
@@ -839,10 +982,11 @@
         return;
       }
 
-      state.relations.push({ id: uid(), from, to, type });
+      const relation = { id: uid(), from, to, type };
+      state.relations.push(relation);
+      await saveRelationToSupabase(relation);
       render();
       showStatus("Relación agregada");
-      await syncState();
     });
 
     canvas.addEventListener("click", event => {
@@ -895,7 +1039,12 @@
     function endDrag() {
       if (!dragging) return;
       dragging.card.removeEventListener("pointermove", moveDrag);
-      syncState("Posición guardada");
+      savePersonToSupabase(dragging.person)
+        .then(() => showStatus("Posición guardada"))
+        .catch(error => {
+          console.error("No se pudo guardar posición:", error);
+          showStatus("No se pudo guardar");
+        });
       dragging = null;
     }
 
@@ -970,10 +1119,11 @@
         }
 
         state = imported;
+        state.people = state.people.map(normalizePerson);
         selectedId = null;
         personForm.reset();
         render();
-        await syncState("Árbol importado");
+        await saveAllToSupabase("Árbol importado");
       } catch (error) {
         alert("El archivo no es un respaldo válido.");
       }
@@ -988,7 +1138,7 @@
       selectedId = null;
       personForm.reset();
       render();
-      syncState("Árbol borrado");
+      saveAllToSupabase("Árbol borrado");
     });
 
     loginForm.addEventListener("submit", async event => {
