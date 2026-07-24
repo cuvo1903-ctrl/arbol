@@ -989,7 +989,12 @@
           .filter(Boolean);
         if (!parents.length || !children.length) continue;
 
-        const parentCenter = parents.reduce((sum, person) => sum + (person.x + cardWidth / 2), 0) / parents.length;
+        const sortedParents = parents.slice().sort((a, b) => a.x - b.x);
+        const firstParent = sortedParents[0];
+        const lastParent = sortedParents.at(-1);
+        const parentCenter = sortedParents.length > 1
+          ? (firstParent.x + cardWidth + lastParent.x) / 2
+          : firstParent.x + cardWidth / 2;
         const blockWidth = children.length * cardWidth + (children.length - 1) * horizontalGap;
         const blockLeft = Math.max(startX, parentCenter - blockWidth / 2);
 
@@ -1304,6 +1309,7 @@
         const childCenters = childBoxes.map(box => box.centerX);
         let siblingLeft = Math.min(...childCenters);
         let siblingRight = Math.max(...childCenters);
+        const siblingCenter = siblingLeft + (siblingRight - siblingLeft) / 2;
         const singleChildBox = childBoxes.length === 1 ? childBoxes[0] : null;
 
         if (parents.length > 1) {
@@ -1315,8 +1321,6 @@
           const unionStroke = isRegisteredPartner ? "#e11d48" : "#667085";
           const unionDash = isRegisteredPartner ? "" : "7 8";
           descentX = adultUnion.center.x;
-          siblingLeft = Math.min(siblingLeft, descentX);
-          siblingRight = Math.max(siblingRight, descentX);
           if (isRegisteredPartner) {
             partnerRelationIds.add(`${sortedParents[0].person.id}:${sortedParents.at(-1).person.id}`);
             partnerRelationIds.add(`${sortedParents.at(-1).person.id}:${sortedParents[0].person.id}`);
@@ -1334,14 +1338,14 @@
             continue;
           }
 
-          svgPath(`M ${descentX} ${adultUnion.center.y} L ${descentX} ${siblingY}`, "#667085", 3);
+          svgPath(orthogonalPath(descentX, adultUnion.center.y, siblingCenter, siblingY), "#667085", 3);
         } else {
           if (singleChildBox) {
             svgPath(orthogonalPath(familyCenterX, parentBottom, singleChildBox.centerX, singleChildBox.top), "#667085", 3);
             continue;
           }
 
-          svgPath(`M ${descentX} ${parentBottom} L ${descentX} ${siblingY}`, "#667085", 3);
+          svgPath(orthogonalPath(descentX, parentBottom, siblingCenter, siblingY), "#667085", 3);
         }
 
         if (children.length > 1) {
