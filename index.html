@@ -261,6 +261,41 @@
       transform: translateY(0);
     }
 
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--bg);
+      z-index: 100;
+    }
+
+    .auth-screen[hidden] {
+      display: none;
+    }
+
+    .auth-panel {
+      width: min(100%, 360px);
+      background: var(--panel);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .auth-panel h2 {
+      margin: 0 0 6px;
+      font-size: 1.2rem;
+    }
+
+    .auth-panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.45;
+    }
+
     @media (max-width: 800px) {
       body { overflow: auto; }
 
@@ -283,6 +318,21 @@
   </style>
 </head>
 <body>
+  <div class="auth-screen" id="authScreen">
+    <form class="auth-panel" id="loginForm">
+      <h2>Acceso familiar</h2>
+      <p>Inicia sesión para ver y editar el árbol genealógico.</p>
+
+      <label for="loginUser">Usuario</label>
+      <input id="loginUser" autocomplete="username" required placeholder="usuario familia" />
+
+      <label for="loginPassword">Clave</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" required />
+
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+  </div>
+
   <div class="app">
     <aside>
       <h1>Árbol genealógico</h1>
@@ -340,6 +390,7 @@
           <button id="importData" class="btn btn-soft" type="button">Importar</button>
           <input id="importFile" type="file" accept=".json" hidden />
           <button id="resetAll" class="btn btn-danger" type="button">Borrar todo</button>
+          <button id="logout" class="btn btn-soft" type="button">Salir</button>
         </div>
       </div>
 
@@ -371,9 +422,17 @@
     const SUPABASE_URL = "https://ckfnknwoqqlftmvzuzsm.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrZm5rbndvcXFsZnRtdnp1enNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTA5NDIsImV4cCI6MjEwMDQ4Njk0Mn0.hJ3wOifeWQcJr_aylG8KEQvl7JhrzM5GBxiafbnOLy8";
     const TREE_ID = "arbol-genealogico-principal";
+    const FAMILY_USERNAME = "usuario familia";
+    const FAMILY_AUTH_EMAIL = "familia@arbol.local";
 
     const supabaseClient = window.supabase && !SUPABASE_URL.includes("PEGA_AQUI")
-      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: false
+          }
+        })
       : null;
 
     let state = {
@@ -385,6 +444,8 @@
     let dragging = null;
 
     const $ = (id) => document.getElementById(id);
+    const authScreen = $("authScreen");
+    const loginForm = $("loginForm");
     const personForm = $("personForm");
     const canvas = $("canvas");
     const connections = $("connections");
@@ -440,6 +501,39 @@
         showStatus("No se pudo guardar");
         throw error;
       }
+    }
+
+    async function getSession() {
+      if (!supabaseClient) return null;
+
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      return data.session;
+    }
+
+    async function signIn(username, password) {
+      if (username.trim().toLowerCase() !== FAMILY_USERNAME) {
+        throw new Error("Usuario o clave incorrectos.");
+      }
+
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: FAMILY_AUTH_EMAIL,
+        password
+      });
+
+      if (error) throw new Error("Usuario o clave incorrectos.");
+    }
+
+    async function requireSession() {
+      const session = await getSession();
+
+      if (session) {
+        authScreen.hidden = true;
+        return true;
+      }
+
+      authScreen.hidden = false;
+      return false;
     }
 
     function showStatus(message) {
@@ -789,10 +883,35 @@
       syncState("Árbol borrado");
     });
 
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      try {
+        await signIn($("loginUser").value, $("loginPassword").value);
+        loginForm.reset();
+        authScreen.hidden = true;
+        await startApp();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    $("logout").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      state = { people: [], relations: [] };
+      selectedId = null;
+      personForm.reset();
+      render();
+      authScreen.hidden = false;
+      $("loginUser").focus();
+    });
+
     window.addEventListener("resize", drawConnections);
 
     async function startApp() {
       try {
+        if (!await requireSession()) return;
+
         const loadedFromSupabase = await loadStateFromSupabase();
         render();
         showStatus(loadedFromSupabase ? "Árbol cargado de Supabase" : "Árbol cargado");

@@ -8,23 +8,26 @@ create table if not exists public.family_trees (
 alter table public.family_trees enable row level security;
 
 drop policy if exists "Public read family trees" on public.family_trees;
-create policy "Public read family trees"
+drop policy if exists "Public write family trees" on public.family_trees;
+drop policy if exists "Public update family trees" on public.family_trees;
+drop policy if exists "Authenticated read family trees" on public.family_trees;
+create policy "Authenticated read family trees"
 on public.family_trees
 for select
-to anon
+to authenticated
 using (true);
 
-drop policy if exists "Public write family trees" on public.family_trees;
-create policy "Public write family trees"
+drop policy if exists "Authenticated write family trees" on public.family_trees;
+create policy "Authenticated write family trees"
 on public.family_trees
 for insert
-to anon
+to authenticated
 with check (true);
 
-drop policy if exists "Public update family trees" on public.family_trees;
-create policy "Public update family trees"
+drop policy if exists "Authenticated update family trees" on public.family_trees;
+create policy "Authenticated update family trees"
 on public.family_trees
 for update
-to anon
+to authenticated
 using (true)
 with check (true);
