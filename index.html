@@ -2077,23 +2077,23 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         toggle.setAttribute("aria-expanded", String(expanded));
       }
 
-      function setEditorPanel(panelName, options = {}) {
-        const showPerson = panelName === "person";
+      function syncMobileTabs(activePanel) {
+        personTab.classList.toggle("active", activePanel === "person");
+        relationTab.classList.toggle("active", activePanel === "relation");
+      }
 
-        if (isMobile()) {
-          setPanelState(personToggle, personPanel, showPerson);
-          setPanelState(relationToggle, relationPanel, !showPerson);
-        } else {
-          const targetToggle = showPerson ? personToggle : relationToggle;
-          const targetPanel = showPerson ? personPanel : relationPanel;
-          setPanelState(targetToggle, targetPanel, true);
-        }
+      function openAccordion(panelName, options = {}) {
+        const isClosingActive = options.toggle
+          && document.getElementById(`${panelName === "person" ? "personEditor" : panelName === "relation" ? "relationEditor" : "actions"}Toggle`)?.getAttribute("aria-expanded") === "true";
+        const activePanel = isClosingActive ? null : panelName;
 
-        personTab.classList.toggle("active", showPerson);
-        relationTab.classList.toggle("active", !showPerson);
+        setPanelState(personToggle, personPanel, activePanel === "person");
+        setPanelState(relationToggle, relationPanel, activePanel === "relation");
+        setPanelState(actionsToggle, actionsPanel, activePanel === "actions");
+        syncMobileTabs(activePanel);
 
-        if (options.focus) {
-          const target = showPerson
+        if (options.focus && activePanel !== "actions") {
+          const target = activePanel === "person"
             ? document.getElementById("firstNames")
             : document.getElementById("fromPerson");
           requestAnimationFrame(() => target?.focus({ preventScroll: true }));
@@ -2104,23 +2104,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         }
       }
 
-      function toggleDesktopPanel(toggle, panel, panelName) {
-        if (isMobile()) {
-          setEditorPanel(panelName);
-          return;
-        }
-
-        const expanded = toggle.getAttribute("aria-expanded") === "true";
-        setPanelState(toggle, panel, !expanded);
+      function setEditorPanel(panelName, options = {}) {
+        openAccordion(panelName, options);
       }
 
-      personToggle.addEventListener("click", () => toggleDesktopPanel(personToggle, personPanel, "person"));
-      relationToggle.addEventListener("click", () => toggleDesktopPanel(relationToggle, relationPanel, "relation"));
-      actionsToggle.addEventListener("click", () => {
-        const expanded = actionsToggle.getAttribute("aria-expanded") === "true";
-        actionsToggle.setAttribute("aria-expanded", String(!expanded));
-        actionsPanel.hidden = expanded;
-      });
+      personToggle.addEventListener("click", () => openAccordion("person", { toggle: true }));
+      relationToggle.addEventListener("click", () => openAccordion("relation", { toggle: true }));
+      actionsToggle.addEventListener("click", () => openAccordion("actions", { toggle: true }));
       personTab.addEventListener("click", () => setEditorPanel("person", { focus: true }));
       relationTab.addEventListener("click", () => setEditorPanel("relation", { focus: true }));
 
@@ -2132,11 +2122,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         setEditorPanel("relation");
       });
 
-      setPanelState(personToggle, personPanel, true);
-      setPanelState(relationToggle, relationPanel, false);
-      setPanelState(actionsToggle, actionsPanel, false);
-      personTab.classList.add("active");
-      relationTab.classList.remove("active");
+      openAccordion("person");
     })();
   </script>
 
