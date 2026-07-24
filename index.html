@@ -1215,20 +1215,26 @@
     }
 
     function innerEdgePoints(leftBox, rightBox) {
+      const y = Math.min(leftBox.centerY, rightBox.centerY);
       return {
         from: {
           x: leftBox.right,
-          y: leftBox.centerY
+          y
         },
         to: {
           x: rightBox.left,
-          y: rightBox.centerY
+          y
         },
         center: {
           x: leftBox.right + (rightBox.left - leftBox.right) / 2,
-          y: leftBox.centerY + (rightBox.centerY - leftBox.centerY) / 2
+          y
         }
       };
+    }
+
+    function orthogonalPath(fromX, fromY, toX, toY) {
+      const midY = fromY + (toY - fromY) / 2;
+      return `M ${fromX} ${fromY} L ${fromX} ${midY} L ${toX} ${midY} L ${toX} ${toY}`;
     }
 
     function buildParentFamilies() {
@@ -1317,21 +1323,21 @@
           }
 
           svgPath(
-            `M ${adultUnion.from.x} ${adultUnion.from.y} L ${adultUnion.center.x} ${adultUnion.center.y} L ${adultUnion.to.x} ${adultUnion.to.y}`,
+            `M ${adultUnion.from.x} ${adultUnion.from.y} L ${adultUnion.to.x} ${adultUnion.to.y}`,
             unionStroke,
             isRegisteredPartner ? 4 : 3,
             unionDash
           );
 
           if (singleChildBox) {
-            svgPath(`M ${adultUnion.center.x} ${adultUnion.center.y} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
+            svgPath(orthogonalPath(adultUnion.center.x, adultUnion.center.y, singleChildBox.centerX, singleChildBox.top), "#667085", 3);
             continue;
           }
 
           svgPath(`M ${descentX} ${adultUnion.center.y} L ${descentX} ${siblingY}`, "#667085", 3);
         } else {
           if (singleChildBox) {
-            svgPath(`M ${familyCenterX} ${parentBottom} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
+            svgPath(orthogonalPath(familyCenterX, parentBottom, singleChildBox.centerX, singleChildBox.top), "#667085", 3);
             continue;
           }
 
@@ -1354,12 +1360,10 @@
         if (relation.type === "parent" && parentRelationIds.has(`${relation.from}:${relation.to}`)) continue;
         if (relation.type === "partner" && partnerRelationIds.has(`${relation.from}:${relation.to}`)) continue;
 
-        const a = cardCenter(fromPerson);
-        const b = cardCenter(toPerson);
-
         if (relation.type === "parent") {
-          const middleY = a.y + (b.y - a.y) / 2;
-          svgPath(`M ${a.x} ${a.y} C ${a.x} ${middleY}, ${b.x} ${middleY}, ${b.x} ${b.y}`, "#667085", 3);
+          const fromBox = cardBox(fromPerson);
+          const toBox = cardBox(toPerson);
+          svgPath(orthogonalPath(fromBox.centerX, fromBox.bottom, toBox.centerX, toBox.top), "#667085", 3);
         } else {
           const fromBox = cardBox(fromPerson);
           const toBox = cardBox(toPerson);
