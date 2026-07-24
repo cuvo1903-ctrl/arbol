@@ -2072,19 +2072,23 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const aside = document.querySelector("#app > aside");
       const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
 
+      function setPanelState(toggle, panel, expanded) {
+        panel.hidden = !expanded;
+        toggle.setAttribute("aria-expanded", String(expanded));
+      }
+
       function setEditorPanel(panelName, options = {}) {
         const showPerson = panelName === "person";
 
         if (isMobile()) {
-          personPanel.hidden = !showPerson;
-          relationPanel.hidden = showPerson;
+          setPanelState(personToggle, personPanel, showPerson);
+          setPanelState(relationToggle, relationPanel, !showPerson);
         } else {
-          personPanel.hidden = !showPerson;
-          relationPanel.hidden = false;
+          const targetToggle = showPerson ? personToggle : relationToggle;
+          const targetPanel = showPerson ? personPanel : relationPanel;
+          setPanelState(targetToggle, targetPanel, true);
         }
 
-        personToggle.setAttribute("aria-expanded", String(showPerson));
-        relationToggle.setAttribute("aria-expanded", String(isMobile() ? !showPerson : true));
         personTab.classList.toggle("active", showPerson);
         relationTab.classList.toggle("active", !showPerson);
 
@@ -2100,8 +2104,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         }
       }
 
-      personToggle.addEventListener("click", () => setEditorPanel("person"));
-      relationToggle.addEventListener("click", () => setEditorPanel("relation"));
+      function toggleDesktopPanel(toggle, panel, panelName) {
+        if (isMobile()) {
+          setEditorPanel(panelName);
+          return;
+        }
+
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        setPanelState(toggle, panel, !expanded);
+      }
+
+      personToggle.addEventListener("click", () => toggleDesktopPanel(personToggle, personPanel, "person"));
+      relationToggle.addEventListener("click", () => toggleDesktopPanel(relationToggle, relationPanel, "relation"));
       actionsToggle.addEventListener("click", () => {
         const expanded = actionsToggle.getAttribute("aria-expanded") === "true";
         actionsToggle.setAttribute("aria-expanded", String(!expanded));
@@ -2118,7 +2132,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         setEditorPanel("relation");
       });
 
-      setEditorPanel("person");
+      setPanelState(personToggle, personPanel, true);
+      setPanelState(relationToggle, relationPanel, false);
+      setPanelState(actionsToggle, actionsPanel, false);
+      personTab.classList.add("active");
+      relationTab.classList.remove("active");
     })();
   </script>
 
