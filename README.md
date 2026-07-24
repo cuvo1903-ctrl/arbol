@@ -7,11 +7,31 @@ Aplicacion HTML para crear un arbol genealogico y sincronizarlo con Supabase.
 1. Abre tu proyecto en Supabase.
 2. Ve a SQL Editor.
 3. Ejecuta el contenido de `supabase-family-trees.sql`.
-4. En `index.html`, reemplaza:
-   - `PEGA_AQUI_TU_SUPABASE_URL`
-   - `PEGA_AQUI_TU_SUPABASE_ANON_KEY`
 
 Los datos se guardan en la tabla `family_trees`, dentro del campo `data`.
+
+## Configuracion publica
+
+El HTML no contiene la URL ni la anon key de Supabase. Las carga desde la Edge Function `public-config`.
+
+En Supabase configura estos secretos:
+
+```powershell
+supabase secrets set PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+supabase secrets set PUBLIC_SUPABASE_ANON_KEY=TU_ANON_KEY
+```
+
+Despliega la funcion:
+
+```powershell
+supabase functions deploy public-config --no-verify-jwt
+```
+
+La funcion debe responder en:
+
+```text
+https://TU_PROYECTO.supabase.co/functions/v1/public-config
+```
 
 ## Login familiar
 
