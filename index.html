@@ -2292,7 +2292,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       if (event.target.closest(".person")) return;
 
-      if (!isMobileViewport() && event.button === 0 && zoomState.pointers.size === 1) {
+      if (event.button === 0 && zoomState.pointers.size === 1) {
         panning = {
           pointerId: event.pointerId,
           startX: event.clientX,
