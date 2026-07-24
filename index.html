@@ -176,6 +176,7 @@
       box-shadow: var(--shadow);
       cursor: grab;
       user-select: none;
+      touch-action: none;
       z-index: 5;
     }
 
@@ -999,6 +1000,7 @@
     });
 
     function beginDrag(event) {
+      event.preventDefault();
       const card = event.currentTarget;
       const person = state.people.find(item => item.id === card.dataset.id);
       if (!person) return;
@@ -1021,6 +1023,7 @@
 
     function moveDrag(event) {
       if (!dragging) return;
+      event.preventDefault();
 
       const dx = event.clientX - dragging.startX;
       const dy = event.clientY - dragging.startY;
