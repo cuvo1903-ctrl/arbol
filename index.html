@@ -398,6 +398,7 @@
         <div class="toolbar">
           <button id="newPerson" class="btn btn-soft" type="button">Nueva persona</button>
           <button id="deletePerson" class="btn btn-danger" type="button">Eliminar seleccionada</button>
+          <button id="autoLayout" class="btn btn-soft" type="button">Ordenar árbol</button>
           <button id="exportData" class="btn btn-soft" type="button">Exportar</button>
           <button id="importData" class="btn btn-soft" type="button">Importar</button>
           <input id="importFile" type="file" accept=".json" hidden />
@@ -898,6 +899,80 @@
       $("firstNames").focus();
     }
 
+    function calculateGenerations() {
+      const generations = new Map(state.people.map(person => [person.id, 0]));
+      const parentRelations = state.relations.filter(relation => relation.type === "parent");
+
+      for (let pass = 0; pass < state.people.length; pass++) {
+        let changed = false;
+
+        for (const relation of parentRelations) {
+          const parentGeneration = generations.get(relation.from) ?? 0;
+          const childGeneration = generations.get(relation.to) ?? 0;
+
+          if (childGeneration <= parentGeneration) {
+            generations.set(relation.to, parentGeneration + 1);
+            changed = true;
+          }
+        }
+
+        if (!changed) break;
+      }
+
+      return generations;
+    }
+
+    async function autoLayoutTree() {
+      const generations = calculateGenerations();
+      const families = buildParentFamilies();
+      const peopleByGeneration = new Map();
+
+      for (const person of state.people) {
+        const generation = generations.get(person.id) ?? 0;
+        if (!peopleByGeneration.has(generation)) peopleByGeneration.set(generation, []);
+        peopleByGeneration.get(generation).push(person);
+      }
+
+      const orderedGenerations = [...peopleByGeneration.keys()].sort((a, b) => a - b);
+      const cardWidth = 190;
+      const horizontalGap = 70;
+      const verticalGap = 190;
+      const startX = 120;
+      const startY = 100;
+
+      for (const generation of orderedGenerations) {
+        const people = peopleByGeneration.get(generation);
+        const childOrder = new Map();
+
+        families.forEach((family, familyIndex) => {
+          family.children.forEach((childId, childIndex) => {
+            childOrder.set(childId, familyIndex * 100 + childIndex);
+          });
+        });
+
+        people.sort((a, b) => {
+          const familyOrder = (childOrder.get(a.id) ?? 9999) - (childOrder.get(b.id) ?? 9999);
+          if (familyOrder !== 0) return familyOrder;
+          return fullName(a).localeCompare(fullName(b), "es");
+        });
+
+        people.forEach((person, index) => {
+          person.x = startX + index * (cardWidth + horizontalGap);
+          person.y = startY + generation * verticalGap;
+        });
+      }
+
+      render();
+
+      try {
+        await Promise.all(state.people.map(savePersonToSupabase));
+        showStatus("Árbol ordenado");
+      } catch (error) {
+        console.error("No se pudo guardar el orden:", error);
+        showStatus("No se pudo guardar");
+      }
+    }
+
     personForm.addEventListener("submit", async event => {
       event.preventDefault();
 
@@ -935,6 +1010,7 @@
     });
 
     $("newPerson").addEventListener("click", clearForm);
+    $("autoLayout").addEventListener("click", autoLayoutTree);
 
     $("deletePerson").addEventListener("click", async () => {
       if (!selectedId) {
@@ -1060,37 +1136,133 @@
       };
     }
 
+    function cardBox(person) {
+      const card = canvas.querySelector(`[data-id="${person.id}"]`);
+      const width = card?.offsetWidth || 190;
+      const height = card?.offsetHeight || 118;
+      return {
+        left: person.x,
+        top: person.y,
+        right: person.x + width,
+        bottom: person.y + height,
+        width,
+        height,
+        centerX: person.x + width / 2,
+        centerY: person.y + height / 2
+      };
+    }
+
+    function svgPath(d, stroke = "#667085", width = 3, dash = "") {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      path.setAttribute("stroke", stroke);
+      path.setAttribute("stroke-width", width);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      if (dash) path.setAttribute("stroke-dasharray", dash);
+      connections.appendChild(path);
+    }
+
+    function buildParentFamilies() {
+      const parentsByChild = new Map();
+
+      for (const relation of state.relations) {
+        if (relation.type !== "parent") continue;
+        if (!parentsByChild.has(relation.to)) parentsByChild.set(relation.to, []);
+        parentsByChild.get(relation.to).push(relation.from);
+      }
+
+      const familiesByKey = new Map();
+
+      for (const [childId, parentIds] of parentsByChild) {
+        const existingParents = [...new Set(parentIds)]
+          .filter(id => state.people.some(person => person.id === id))
+          .sort();
+        if (!existingParents.length) continue;
+
+        const key = existingParents.join("|");
+        if (!familiesByKey.has(key)) {
+          familiesByKey.set(key, {
+            parents: existingParents,
+            children: []
+          });
+        }
+
+        familiesByKey.get(key).children.push(childId);
+      }
+
+      return [...familiesByKey.values()].map(family => ({
+        ...family,
+        children: [...new Set(family.children)]
+      }));
+    }
+
     function drawConnections() {
       connections.innerHTML = "";
+
+      const parentFamilies = buildParentFamilies();
+      const parentRelationIds = new Set();
+
+      for (const family of parentFamilies) {
+        const parents = family.parents
+          .map(id => state.people.find(person => person.id === id))
+          .filter(Boolean);
+        const children = family.children
+          .map(id => state.people.find(person => person.id === id))
+          .filter(Boolean);
+
+        if (!parents.length || !children.length) continue;
+
+        for (const child of children) {
+          for (const parent of parents) {
+            parentRelationIds.add(`${parent.id}:${child.id}`);
+          }
+        }
+
+        const parentBoxes = parents.map(cardBox);
+        const childBoxes = children.map(cardBox);
+        const parentBottom = Math.max(...parentBoxes.map(box => box.bottom));
+        const childTop = Math.min(...childBoxes.map(box => box.top));
+        const familyCenterX = parentBoxes.reduce((sum, box) => sum + box.centerX, 0) / parentBoxes.length;
+        const siblingY = parentBottom + Math.max(36, (childTop - parentBottom) * 0.48);
+        const childCenters = childBoxes.map(box => box.centerX);
+        const siblingLeft = Math.min(...childCenters);
+        const siblingRight = Math.max(...childCenters);
+
+        if (parents.length > 1) {
+          const sortedParentBoxes = parentBoxes.slice().sort((a, b) => a.centerX - b.centerX);
+          const partnerY = Math.min(...parentBoxes.map(box => box.centerY));
+          svgPath(`M ${sortedParentBoxes[0].centerX} ${partnerY} L ${sortedParentBoxes.at(-1).centerX} ${partnerY}`, "#e11d48", 4);
+          svgPath(`M ${familyCenterX} ${partnerY} L ${familyCenterX} ${siblingY}`, "#667085", 3);
+        } else {
+          svgPath(`M ${familyCenterX} ${parentBottom} L ${familyCenterX} ${siblingY}`, "#667085", 3);
+        }
+
+        if (children.length > 1) {
+          svgPath(`M ${siblingLeft} ${siblingY} L ${siblingRight} ${siblingY}`, "#667085", 3);
+        }
+
+        for (const childBox of childBoxes) {
+          svgPath(`M ${childBox.centerX} ${siblingY} L ${childBox.centerX} ${childBox.top}`, "#667085", 3);
+        }
+      }
 
       for (const relation of state.relations) {
         const fromPerson = state.people.find(person => person.id === relation.from);
         const toPerson = state.people.find(person => person.id === relation.to);
         if (!fromPerson || !toPerson) continue;
+        if (relation.type === "parent" && parentRelationIds.has(`${relation.from}:${relation.to}`)) continue;
 
         const a = cardCenter(fromPerson);
         const b = cardCenter(toPerson);
 
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
         if (relation.type === "parent") {
           const middleY = a.y + (b.y - a.y) / 2;
-          path.setAttribute(
-            "d",
-            `M ${a.x} ${a.y} C ${a.x} ${middleY}, ${b.x} ${middleY}, ${b.x} ${b.y}`
-          );
-          path.setAttribute("stroke", "#667085");
-          path.setAttribute("stroke-width", "3");
+          svgPath(`M ${a.x} ${a.y} C ${a.x} ${middleY}, ${b.x} ${middleY}, ${b.x} ${b.y}`, "#667085", 3);
         } else {
-          path.setAttribute("d", `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
-          path.setAttribute("stroke", "#e11d48");
-          path.setAttribute("stroke-width", "4");
-          path.setAttribute("stroke-dasharray", "8 7");
+          svgPath(`M ${a.x} ${a.y} L ${b.x} ${b.y}`, "#e11d48", 4, "8 7");
         }
-
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke-linecap", "round");
-        connections.appendChild(path);
       }
     }
 
