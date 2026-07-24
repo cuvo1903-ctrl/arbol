@@ -808,10 +808,12 @@
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-title">
+      <section class="section accordion-section" id="actionsSection">
+        <button class="section-title accordion-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionsPanel">
           <h2>Acciones</h2>
-        </div>
+          <span class="section-badge">Herramientas</span>
+        </button>
+        <div class="accordion-panel" id="actionsPanel" hidden>
         <div class="toolbar">
           <button id="newPerson" class="btn btn-soft" type="button">＋ Nueva persona</button>
           <button id="deletePerson" class="btn btn-danger" type="button">⌫ Eliminar seleccionada</button>
@@ -821,6 +823,7 @@
           <input id="importFile" type="file" accept=".json" hidden />
           <button id="resetAll" class="btn btn-danger" type="button">⌫ Limpiar todo</button>
           <button id="logout" class="btn btn-soft" type="button">↪ Cerrar sesión</button>
+        </div>
         </div>
       </section>
 
@@ -2062,17 +2065,26 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const relationToggle = document.getElementById("relationEditorToggle");
       const personPanel = document.getElementById("personEditorPanel");
       const relationPanel = document.getElementById("relationEditorPanel");
+      const actionsToggle = document.getElementById("actionsToggle");
+      const actionsPanel = document.getElementById("actionsPanel");
       const personTab = document.getElementById("mobilePersonTab");
       const relationTab = document.getElementById("mobileRelationTab");
       const aside = document.querySelector("#app > aside");
+      const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
 
       function setEditorPanel(panelName, options = {}) {
         const showPerson = panelName === "person";
 
-        personPanel.hidden = !showPerson;
-        relationPanel.hidden = showPerson;
+        if (isMobile()) {
+          personPanel.hidden = !showPerson;
+          relationPanel.hidden = showPerson;
+        } else {
+          personPanel.hidden = !showPerson;
+          relationPanel.hidden = false;
+        }
+
         personToggle.setAttribute("aria-expanded", String(showPerson));
-        relationToggle.setAttribute("aria-expanded", String(!showPerson));
+        relationToggle.setAttribute("aria-expanded", String(isMobile() ? !showPerson : true));
         personTab.classList.toggle("active", showPerson);
         relationTab.classList.toggle("active", !showPerson);
 
@@ -2083,13 +2095,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           requestAnimationFrame(() => target?.focus({ preventScroll: true }));
         }
 
-        if (options.scroll && window.matchMedia("(max-width: 760px)").matches) {
+        if (options.scroll && isMobile()) {
           requestAnimationFrame(() => aside?.scrollIntoView({ behavior: "smooth", block: "start" }));
         }
       }
 
       personToggle.addEventListener("click", () => setEditorPanel("person"));
       relationToggle.addEventListener("click", () => setEditorPanel("relation"));
+      actionsToggle.addEventListener("click", () => {
+        const expanded = actionsToggle.getAttribute("aria-expanded") === "true";
+        actionsToggle.setAttribute("aria-expanded", String(!expanded));
+        actionsPanel.hidden = expanded;
+      });
       personTab.addEventListener("click", () => setEditorPanel("person", { focus: true }));
       relationTab.addEventListener("click", () => setEditorPanel("relation", { focus: true }));
 
@@ -2101,7 +2118,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         setEditorPanel("relation");
       });
 
-      // En escritorio abre Agregar persona; en móvil el árbol aparece primero y el editor debajo.
       setEditorPanel("person");
     })();
   </script>
