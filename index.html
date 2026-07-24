@@ -767,6 +767,12 @@
         flex: none;
         border-bottom: 0;
         z-index: 1;
+        touch-action: none;
+      }
+
+      #canvas,
+      .person {
+        touch-action: none;
       }
 
       aside {
@@ -904,7 +910,7 @@
       <div class="mobile-editor-menu" aria-label="Editor del árbol">
         <button id="mobilePersonTab" class="editor-tab" type="button">Agregar persona</button>
         <button id="mobileRelationTab" class="editor-tab" type="button">Agregar relación</button>
-        <button id="mobileClosePanel" class="btn btn-soft btn-icon mobile-close-panel" type="button" title="Cerrar panel">Cerrar</button>
+        <button id="mobileClosePanel" class="btn btn-soft btn-icon mobile-close-panel" type="button" title="Cerrar panel">X</button>
       </div>
 
       <section class="section accordion-section" id="personEditorSection">
@@ -1077,8 +1083,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const connections = $("connections");
     const zoomState = {
       value: 1,
-      min: 0.45,
-      max: 2.2,
+      min: 0.25,
+      max: 4,
       pointers: new Map(),
       pinchStartDistance: 0,
       pinchStartZoom: 1,
@@ -2120,7 +2126,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           timer: window.setTimeout(() => cancelPendingDrag(), 260)
         };
 
-        card.setPointerCapture(event.pointerId);
         card.addEventListener("pointermove", movePendingDrag);
         card.addEventListener("pointerup", endPendingDrag, { once: true });
         card.addEventListener("pointercancel", endPendingDrag, { once: true });
