@@ -1204,6 +1204,33 @@
       connections.appendChild(path);
     }
 
+    function hasPartnerRelation(aId, bId) {
+      return state.relations.some(relation =>
+        relation.type === "partner" &&
+        (
+          (relation.from === aId && relation.to === bId) ||
+          (relation.from === bId && relation.to === aId)
+        )
+      );
+    }
+
+    function innerEdgePoints(leftBox, rightBox) {
+      return {
+        from: {
+          x: leftBox.right,
+          y: leftBox.centerY
+        },
+        to: {
+          x: rightBox.left,
+          y: rightBox.centerY
+        },
+        center: {
+          x: leftBox.right + (rightBox.left - leftBox.right) / 2,
+          y: leftBox.centerY + (rightBox.centerY - leftBox.centerY) / 2
+        }
+      };
+    }
+
     function buildParentFamilies() {
       const parentsByChild = new Map();
 
@@ -1243,6 +1270,7 @@
 
       const parentFamilies = buildParentFamilies();
       const parentRelationIds = new Set();
+      const partnerRelationIds = new Set();
 
       for (const family of parentFamilies) {
         const parents = family.parents
@@ -1265,29 +1293,49 @@
         const parentBottom = Math.max(...parentBoxes.map(box => box.bottom));
         const childTop = Math.min(...childBoxes.map(box => box.top));
         const familyCenterX = parentBoxes.reduce((sum, box) => sum + box.centerX, 0) / parentBoxes.length;
+        let descentX = familyCenterX;
         const siblingY = parentBottom + Math.max(36, (childTop - parentBottom) * 0.48);
         const childCenters = childBoxes.map(box => box.centerX);
-        const siblingLeft = Math.min(...childCenters);
-        const siblingRight = Math.max(...childCenters);
+        let siblingLeft = Math.min(...childCenters);
+        let siblingRight = Math.max(...childCenters);
         const singleChildBox = childBoxes.length === 1 ? childBoxes[0] : null;
 
         if (parents.length > 1) {
-          const sortedParentBoxes = parentBoxes.slice().sort((a, b) => a.centerX - b.centerX);
-          const partnerY = Math.min(...parentBoxes.map(box => box.centerY));
-          svgPath(`M ${sortedParentBoxes[0].centerX} ${partnerY} L ${sortedParentBoxes.at(-1).centerX} ${partnerY}`, "#e11d48", 4);
+          const sortedParents = parents
+            .map((person, index) => ({ person, box: parentBoxes[index] }))
+            .sort((a, b) => a.box.centerX - b.box.centerX);
+          const adultUnion = innerEdgePoints(sortedParents[0].box, sortedParents.at(-1).box);
+          const isRegisteredPartner = hasPartnerRelation(sortedParents[0].person.id, sortedParents.at(-1).person.id);
+          const unionStroke = isRegisteredPartner ? "#e11d48" : "#667085";
+          const unionDash = isRegisteredPartner ? "" : "7 8";
+          descentX = adultUnion.center.x;
+          siblingLeft = Math.min(siblingLeft, descentX);
+          siblingRight = Math.max(siblingRight, descentX);
+          if (isRegisteredPartner) {
+            partnerRelationIds.add(`${sortedParents[0].person.id}:${sortedParents.at(-1).person.id}`);
+            partnerRelationIds.add(`${sortedParents.at(-1).person.id}:${sortedParents[0].person.id}`);
+          }
+
+          svgPath(
+            `M ${adultUnion.from.x} ${adultUnion.from.y} L ${adultUnion.center.x} ${adultUnion.center.y} L ${adultUnion.to.x} ${adultUnion.to.y}`,
+            unionStroke,
+            isRegisteredPartner ? 4 : 3,
+            unionDash
+          );
+
           if (singleChildBox) {
-            svgPath(`M ${familyCenterX} ${partnerY} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
+            svgPath(`M ${adultUnion.center.x} ${adultUnion.center.y} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
             continue;
           }
 
-          svgPath(`M ${familyCenterX} ${partnerY} L ${familyCenterX} ${siblingY}`, "#667085", 3);
+          svgPath(`M ${descentX} ${adultUnion.center.y} L ${descentX} ${siblingY}`, "#667085", 3);
         } else {
           if (singleChildBox) {
             svgPath(`M ${familyCenterX} ${parentBottom} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
             continue;
           }
 
-          svgPath(`M ${familyCenterX} ${parentBottom} L ${familyCenterX} ${siblingY}`, "#667085", 3);
+          svgPath(`M ${descentX} ${parentBottom} L ${descentX} ${siblingY}`, "#667085", 3);
         }
 
         if (children.length > 1) {
@@ -1304,6 +1352,7 @@
         const toPerson = state.people.find(person => person.id === relation.to);
         if (!fromPerson || !toPerson) continue;
         if (relation.type === "parent" && parentRelationIds.has(`${relation.from}:${relation.to}`)) continue;
+        if (relation.type === "partner" && partnerRelationIds.has(`${relation.from}:${relation.to}`)) continue;
 
         const a = cardCenter(fromPerson);
         const b = cardCenter(toPerson);
@@ -1312,7 +1361,11 @@
           const middleY = a.y + (b.y - a.y) / 2;
           svgPath(`M ${a.x} ${a.y} C ${a.x} ${middleY}, ${b.x} ${middleY}, ${b.x} ${b.y}`, "#667085", 3);
         } else {
-          svgPath(`M ${a.x} ${a.y} L ${b.x} ${b.y}`, "#e11d48", 4, "8 7");
+          const fromBox = cardBox(fromPerson);
+          const toBox = cardBox(toPerson);
+          const [leftBox, rightBox] = fromBox.centerX <= toBox.centerX ? [fromBox, toBox] : [toBox, fromBox];
+          const adultUnion = innerEdgePoints(leftBox, rightBox);
+          svgPath(`M ${adultUnion.from.x} ${adultUnion.from.y} L ${adultUnion.to.x} ${adultUnion.to.y}`, "#e11d48", 4);
         }
       }
     }
