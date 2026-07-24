@@ -15,19 +15,19 @@ create policy "Authenticated read family trees"
 on public.family_trees
 for select
 to authenticated
-using (true);
+using (auth.role() = 'authenticated');
 
 drop policy if exists "Authenticated write family trees" on public.family_trees;
 create policy "Authenticated write family trees"
 on public.family_trees
 for insert
 to authenticated
-with check (true);
+with check (auth.role() = 'authenticated');
 
 drop policy if exists "Authenticated update family trees" on public.family_trees;
 create policy "Authenticated update family trees"
 on public.family_trees
 for update
 to authenticated
-using (true)
-with check (true);
+using (auth.role() = 'authenticated')
+with check (auth.role() = 'authenticated');

@@ -496,13 +496,19 @@
     async function loadStateFromSupabase() {
       if (!supabaseClient) return false;
 
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
       const { data: trees, error } = await supabaseClient
         .from("family_trees")
         .select("id,data,updated_at")
         .order("updated_at", { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error leyendo family_trees:", error);
+        throw new Error(error.message || "No se pudo leer Supabase.");
+      }
 
       const validTrees = (trees || []).filter(tree =>
         tree?.data &&
@@ -549,12 +555,14 @@
     async function signIn(email, password) {
       await initSupabase();
 
-      const { error } = await supabaseClient.auth.signInWithPassword({
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password
       });
 
       if (error) throw new Error("Correo o clave incorrectos.");
+      if (!data.session) throw new Error("No se pudo iniciar sesión.");
+      return data.session;
     }
 
     async function requireSession() {
