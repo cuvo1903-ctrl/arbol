@@ -962,6 +962,31 @@
         });
       }
 
+      const centeredFamilies = buildParentFamilies()
+        .slice()
+        .sort((a, b) => b.parents.length - a.parents.length);
+
+      for (const family of centeredFamilies) {
+        const parents = family.parents
+          .map(id => state.people.find(person => person.id === id))
+          .filter(Boolean);
+        const children = family.children
+          .map(id => state.people.find(person => person.id === id))
+          .filter(Boolean);
+        if (!parents.length || !children.length) continue;
+
+        const parentCenter = parents.reduce((sum, person) => sum + (person.x + cardWidth / 2), 0) / parents.length;
+        const blockWidth = children.length * cardWidth + (children.length - 1) * horizontalGap;
+        const blockLeft = Math.max(startX, parentCenter - blockWidth / 2);
+
+        children
+          .slice()
+          .sort((a, b) => fullName(a).localeCompare(fullName(b), "es"))
+          .forEach((child, index) => {
+            child.x = blockLeft + index * (cardWidth + horizontalGap);
+          });
+      }
+
       render();
 
       try {
@@ -1229,13 +1254,24 @@
         const childCenters = childBoxes.map(box => box.centerX);
         const siblingLeft = Math.min(...childCenters);
         const siblingRight = Math.max(...childCenters);
+        const singleChildBox = childBoxes.length === 1 ? childBoxes[0] : null;
 
         if (parents.length > 1) {
           const sortedParentBoxes = parentBoxes.slice().sort((a, b) => a.centerX - b.centerX);
           const partnerY = Math.min(...parentBoxes.map(box => box.centerY));
           svgPath(`M ${sortedParentBoxes[0].centerX} ${partnerY} L ${sortedParentBoxes.at(-1).centerX} ${partnerY}`, "#e11d48", 4);
+          if (singleChildBox) {
+            svgPath(`M ${familyCenterX} ${partnerY} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
+            continue;
+          }
+
           svgPath(`M ${familyCenterX} ${partnerY} L ${familyCenterX} ${siblingY}`, "#667085", 3);
         } else {
+          if (singleChildBox) {
+            svgPath(`M ${familyCenterX} ${parentBottom} L ${singleChildBox.centerX} ${singleChildBox.top}`, "#667085", 3);
+            continue;
+          }
+
           svgPath(`M ${familyCenterX} ${parentBottom} L ${familyCenterX} ${siblingY}`, "#667085", 3);
         }
 
