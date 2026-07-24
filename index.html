@@ -496,33 +496,29 @@
     async function loadStateFromSupabase() {
       if (!supabaseClient) return false;
 
-      const { data: selectedTree, error: selectedError } = await supabaseClient
+      const { data: trees, error } = await supabaseClient
         .from("family_trees")
-        .select("id,data")
-        .eq("id", DEFAULT_TREE_ID)
-        .maybeSingle();
+        .select("id,data,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(20);
 
-      if (selectedError) throw selectedError;
+      if (error) throw error;
 
-      let data = selectedTree;
+      const validTrees = (trees || []).filter(tree =>
+        tree?.data &&
+        Array.isArray(tree.data.people) &&
+        Array.isArray(tree.data.relations)
+      );
 
-      if (!data) {
-        const { data: latestTree, error } = await supabaseClient
-          .from("family_trees")
-          .select("id,data,updated_at")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      const treeWithPeople = validTrees.find(tree => tree.data.people.length > 0);
+      const defaultTree = validTrees.find(tree => tree.id === DEFAULT_TREE_ID);
+      const selectedTree = treeWithPeople || defaultTree || validTrees[0];
 
-        if (error) throw error;
-        data = latestTree;
-      }
-
-      if (data?.data && Array.isArray(data.data.people) && Array.isArray(data.data.relations)) {
-        activeTreeId = data.id || DEFAULT_TREE_ID;
+      if (selectedTree) {
+        activeTreeId = selectedTree.id || DEFAULT_TREE_ID;
         state = {
-          ...data.data,
-          people: data.data.people.map(normalizePerson)
+          ...selectedTree.data,
+          people: selectedTree.data.people.map(normalizePerson)
         };
         return true;
       }
