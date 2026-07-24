@@ -323,8 +323,8 @@
       <h2>Acceso familiar</h2>
       <p>Inicia sesión para ver y editar el árbol genealógico.</p>
 
-      <label for="loginUser">Usuario</label>
-      <input id="loginUser" autocomplete="username" required placeholder="usuario familia" />
+      <label for="loginEmail">Correo</label>
+      <input id="loginEmail" type="email" autocomplete="username" required />
 
       <label for="loginPassword">Clave</label>
       <input id="loginPassword" type="password" autocomplete="current-password" required />
@@ -422,9 +422,6 @@
     const SUPABASE_URL = "https://ckfnknwoqqlftmvzuzsm.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrZm5rbndvcXFsZnRtdnp1enNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTA5NDIsImV4cCI6MjEwMDQ4Njk0Mn0.hJ3wOifeWQcJr_aylG8KEQvl7JhrzM5GBxiafbnOLy8";
     const TREE_ID = "arbol-genealogico-principal";
-    const FAMILY_USERNAME = "usuario familia";
-    const FAMILY_AUTH_EMAIL = "familia@arbol.local";
-
     const supabaseClient = window.supabase && !SUPABASE_URL.includes("PEGA_AQUI")
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           auth: {
@@ -511,17 +508,13 @@
       return data.session;
     }
 
-    async function signIn(username, password) {
-      if (username.trim().toLowerCase() !== FAMILY_USERNAME) {
-        throw new Error("Usuario o clave incorrectos.");
-      }
-
+    async function signIn(email, password) {
       const { error } = await supabaseClient.auth.signInWithPassword({
-        email: FAMILY_AUTH_EMAIL,
+        email: email.trim().toLowerCase(),
         password
       });
 
-      if (error) throw new Error("Usuario o clave incorrectos.");
+      if (error) throw new Error("Correo o clave incorrectos.");
     }
 
     async function requireSession() {
@@ -887,7 +880,7 @@
       event.preventDefault();
 
       try {
-        await signIn($("loginUser").value, $("loginPassword").value);
+        await signIn($("loginEmail").value, $("loginPassword").value);
         loginForm.reset();
         authScreen.hidden = true;
         await startApp();
@@ -903,7 +896,7 @@
       personForm.reset();
       render();
       authScreen.hidden = false;
-      $("loginUser").focus();
+      $("loginEmail").focus();
     });
 
     window.addEventListener("resize", drawConnections);

@@ -18,16 +18,13 @@ Los datos se guardan en la tabla `family_trees`, dentro del campo `data`.
 La pagina usa Supabase Auth y no muestra registro publico.
 
 1. En Supabase, ve a Authentication > Users.
-2. Crea un usuario manual:
-   - Email: `familia@arbol.local`
-   - Password: la clave familiar acordada
-   - Email confirm: confirmado
+2. Crea manualmente los usuarios autorizados con su correo y clave.
 3. En Authentication > Providers > Email, desactiva los registros publicos si no quieres que nadie cree cuentas.
 4. Vuelve a ejecutar `supabase-family-trees.sql` para que la tabla solo permita acceso a usuarios autenticados.
 
 En la pagina se entra con:
 
-- Usuario: `usuario familia`
+- Correo: el correo creado en Supabase Auth
 - Clave: la clave familiar acordada
 
 ## Subir a GitHub
