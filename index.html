@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Árbol genealógico</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #6b7280;
+      --line: #aeb8ca;
+      --accent: #4f46e5;
+      --danger: #dc2626;
+      --shadow: 0 14px 35px rgba(34, 49, 82, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+    }
+
+    aside {
+      background: var(--panel);
+      border-right: 1px solid #e5e7eb;
+      padding: 22px;
+      overflow-y: auto;
+      z-index: 20;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 22px;
+      line-height: 1.45;
+    }
+
+    .section {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 18px;
+      margin-top: 18px;
+    }
+
+    .section h2 {
+      font-size: .9rem;
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #4b5563;
+    }
+
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 700;
+      margin: 12px 0 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d7dce6;
+      border-radius: 10px;
+      padding: 10px 11px;
+      outline: none;
+      background: #fff;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .btn-soft {
+      background: #eef0ff;
+      color: #3730a3;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .workspace {
+      position: relative;
+      overflow: auto;
+      background:
+        linear-gradient(#e8ecf4 1px, transparent 1px),
+        linear-gradient(90deg, #e8ecf4 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    #canvas {
+      position: relative;
+      width: 2200px;
+      height: 1400px;
+      transform-origin: 0 0;
+    }
+
+    #connections {
+      position: absolute;
+      inset: 0;
+      width: 2200px;
+      height: 1400px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .person {
+      position: absolute;
+      width: 190px;
+      min-height: 118px;
+      background: var(--panel);
+      border: 1px solid #dce1ea;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      cursor: grab;
+      user-select: none;
+      z-index: 5;
+    }
+
+    .person:active { cursor: grabbing; }
+
+    .person.selected {
+      outline: 3px solid rgba(79, 70, 229, .25);
+      border-color: var(--accent);
+    }
+
+    .person-header {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      color: #fff;
+      background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+      flex: 0 0 auto;
+    }
+
+    .person h3 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .dates {
+      color: var(--muted);
+      font-size: .78rem;
+      margin-top: 3px;
+    }
+
+    .notes {
+      color: #4b5563;
+      font-size: .78rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      position: absolute;
+      left: 50%;
+      top: 45%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255,255,255,.8);
+      padding: 20px 24px;
+      border-radius: 18px;
+      pointer-events: none;
+    }
+
+    .legend {
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .status {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: rgba(23, 32, 51, .92);
+      color: white;
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: .8rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: .2s ease;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    .status.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 800px) {
+      body { overflow: auto; }
+
+      .app {
+        display: block;
+        height: auto;
+      }
+
+      aside {
+        position: relative;
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .workspace {
+        height: 72vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <h1>Árbol genealógico</h1>
+      <div class="subtitle">
+        Agrega personas, relaciónalas y arrastra sus tarjetas para acomodar el árbol.
+      </div>
+
+      <form id="personForm">
+        <input type="hidden" id="personId" />
+
+        <label for="name">Nombre completo</label>
+        <input id="name" required placeholder="Ej. María Hernández" />
+
+        <div class="row">
+          <div>
+            <label for="birth">Nacimiento</label>
+            <input id="birth" type="date" />
+          </div>
+          <div>
+            <label for="death">Fallecimiento</label>
+            <input id="death" type="date" />
+          </div>
+        </div>
+
+        <label for="notes">Notas</label>
+        <textarea id="notes" placeholder="Lugar de origen, profesión, anécdotas..."></textarea>
+
+        <button class="btn btn-primary" type="submit">Guardar persona</button>
+      </form>
+
+      <div class="section">
+        <h2>Crear relación</h2>
+
+        <label for="fromPerson">Persona 1</label>
+        <select id="fromPerson"></select>
+
+        <label for="relationType">Relación</label>
+        <select id="relationType">
+          <option value="parent">Es padre/madre de</option>
+          <option value="partner">Es pareja de</option>
+        </select>
+
+        <label for="toPerson">Persona 2</label>
+        <select id="toPerson"></select>
+
+        <button id="addRelation" class="btn btn-primary" type="button">Agregar relación</button>
+      </div>
+
+      <div class="section">
+        <h2>Acciones</h2>
+        <div class="toolbar">
+          <button id="newPerson" class="btn btn-soft" type="button">Nueva persona</button>
+          <button id="deletePerson" class="btn btn-danger" type="button">Eliminar seleccionada</button>
+          <button id="exportData" class="btn btn-soft" type="button">Exportar</button>
+          <button id="importData" class="btn btn-soft" type="button">Importar</button>
+          <input id="importFile" type="file" accept=".json" hidden />
+          <button id="resetAll" class="btn btn-danger" type="button">Borrar todo</button>
+        </div>
+      </div>
+
+      <div class="section legend">
+        <strong>Cómo usarlo:</strong><br>
+        1. Crea a cada integrante.<br>
+        2. Selecciona dos personas y crea su relación.<br>
+        3. Arrastra las tarjetas para ordenarlas.<br>
+        4. Haz clic en una tarjeta para editarla.<br>
+        5. Exporta un respaldo en formato JSON.
+      </div>
+    </aside>
+
+    <main class="workspace" id="workspace">
+      <div id="canvas">
+        <svg id="connections"></svg>
+        <div class="empty" id="emptyMessage">
+          <strong>Tu árbol está vacío</strong><br>
+          Agrega la primera persona desde el panel.
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://ckfnknwoqqlftmvzuzsm.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrZm5rbndvcXFsZnRtdnp1enNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTA5NDIsImV4cCI6MjEwMDQ4Njk0Mn0.hJ3wOifeWQcJr_aylG8KEQvl7JhrzM5GBxiafbnOLy8";
+    const TREE_ID = "arbol-genealogico-principal";
+
+    const supabaseClient = window.supabase && !SUPABASE_URL.includes("PEGA_AQUI")
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    let state = {
+      people: [],
+      relations: []
+    };
+
+    let selectedId = null;
+    let dragging = null;
+
+    const $ = (id) => document.getElementById(id);
+    const personForm = $("personForm");
+    const canvas = $("canvas");
+    const connections = $("connections");
+
+    function uid() {
+      return crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    async function saveStateToSupabase() {
+      if (!supabaseClient) {
+        throw new Error("Supabase no está configurado.");
+      }
+
+      const { error } = await supabaseClient
+        .from("family_trees")
+        .upsert({
+          id: TREE_ID,
+          name: "Árbol genealógico",
+          data: state,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+    }
+
+    async function loadStateFromSupabase() {
+      if (!supabaseClient) return false;
+
+      const { data, error } = await supabaseClient
+        .from("family_trees")
+        .select("data")
+        .eq("id", TREE_ID)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.data && Array.isArray(data.data.people) && Array.isArray(data.data.relations)) {
+        state = data.data;
+        return true;
+      }
+
+      return false;
+    }
+
+    async function syncState(message = "Guardado en Supabase") {
+      try {
+        await saveStateToSupabase();
+        showStatus(message);
+      } catch (error) {
+        console.error("No se pudo guardar en Supabase:", error);
+        showStatus("No se pudo guardar");
+        throw error;
+      }
+    }
+
+    function showStatus(message) {
+      const status = $("status");
+      status.textContent = message;
+      status.classList.add("show");
+      clearTimeout(showStatus.timer);
+      showStatus.timer = setTimeout(() => status.classList.remove("show"), 1800);
+    }
+
+    function escapeHtml(value = "") {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function initials(name) {
+      return name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0].toUpperCase())
+        .join("");
+    }
+
+    function formatDate(date) {
+      if (!date) return "";
+      const [year, month, day] = date.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    function dateText(person) {
+      const birth = person.birth ? formatDate(person.birth) : "?";
+      const death = person.death ? formatDate(person.death) : "";
+      return death ? `${birth} — ${death}` : `Nac. ${birth}`;
+    }
+
+    function render() {
+      canvas.querySelectorAll(".person").forEach(node => node.remove());
+
+      for (const person of state.people) {
+        const card = document.createElement("article");
+        card.className = "person" + (person.id === selectedId ? " selected" : "");
+        card.dataset.id = person.id;
+        card.style.left = `${person.x ?? 420}px`;
+        card.style.top = `${person.y ?? 250}px`;
+
+        card.innerHTML = `
+          <div class="person-header">
+            <div class="avatar">${escapeHtml(initials(person.name))}</div>
+            <div>
+              <h3>${escapeHtml(person.name)}</h3>
+              <div class="dates">${escapeHtml(dateText(person))}</div>
+            </div>
+          </div>
+          ${person.notes ? `<div class="notes">${escapeHtml(person.notes)}</div>` : ""}
+        `;
+
+        card.addEventListener("pointerdown", beginDrag);
+        card.addEventListener("click", event => {
+          event.stopPropagation();
+          selectPerson(person.id);
+        });
+
+        canvas.appendChild(card);
+      }
+
+      $("emptyMessage").style.display = state.people.length ? "none" : "block";
+      updatePersonSelects();
+      drawConnections();
+    }
+
+    function updatePersonSelects() {
+      const selects = [$("fromPerson"), $("toPerson")];
+      const previous = selects.map(select => select.value);
+
+      for (const select of selects) {
+        select.innerHTML = state.people.length
+          ? state.people.map(person =>
+              `<option value="${person.id}">${escapeHtml(person.name)}</option>`
+            ).join("")
+          : `<option value="">No hay personas</option>`;
+      }
+
+      selects.forEach((select, index) => {
+        if (state.people.some(person => person.id === previous[index])) {
+          select.value = previous[index];
+        }
+      });
+    }
+
+    function selectPerson(id) {
+      selectedId = id;
+      const person = state.people.find(item => item.id === id);
+      if (!person) return;
+
+      $("personId").value = person.id;
+      $("name").value = person.name || "";
+      $("birth").value = person.birth || "";
+      $("death").value = person.death || "";
+      $("notes").value = person.notes || "";
+      render();
+    }
+
+    function clearForm() {
+      selectedId = null;
+      personForm.reset();
+      $("personId").value = "";
+      render();
+      $("name").focus();
+    }
+
+    personForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const id = $("personId").value;
+      const data = {
+        name: $("name").value.trim(),
+        birth: $("birth").value,
+        death: $("death").value,
+        notes: $("notes").value.trim()
+      };
+
+      if (!data.name) return;
+
+      if (id) {
+        const person = state.people.find(item => item.id === id);
+        Object.assign(person, data);
+        showStatus("Persona actualizada");
+      } else {
+        const offset = state.people.length * 28;
+        state.people.push({
+          id: uid(),
+          ...data,
+          x: 430 + offset,
+          y: 180 + offset
+        });
+        showStatus("Persona agregada");
+      }
+
+      clearForm();
+      await syncState();
+    });
+
+    $("newPerson").addEventListener("click", clearForm);
+
+    $("deletePerson").addEventListener("click", () => {
+      if (!selectedId) {
+        alert("Selecciona una persona primero.");
+        return;
+      }
+
+      const person = state.people.find(item => item.id === selectedId);
+      if (!confirm(`¿Eliminar a ${person?.name || "esta persona"} y sus relaciones?`)) return;
+
+      state.people = state.people.filter(item => item.id !== selectedId);
+      state.relations = state.relations.filter(
+        relation => relation.from !== selectedId && relation.to !== selectedId
+      );
+
+      clearForm();
+      showStatus("Persona eliminada");
+      syncState();
+    });
+
+    $("addRelation").addEventListener("click", async () => {
+      const from = $("fromPerson").value;
+      const to = $("toPerson").value;
+      const type = $("relationType").value;
+
+      if (!from || !to) {
+        alert("Primero agrega al menos dos personas.");
+        return;
+      }
+
+      if (from === to) {
+        alert("Selecciona dos personas distintas.");
+        return;
+      }
+
+      const exists = state.relations.some(relation =>
+        relation.type === type &&
+        (
+          (relation.from === from && relation.to === to) ||
+          (type === "partner" && relation.from === to && relation.to === from)
+        )
+      );
+
+      if (exists) {
+        alert("Esa relación ya existe.");
+        return;
+      }
+
+      state.relations.push({ id: uid(), from, to, type });
+      render();
+      showStatus("Relación agregada");
+      await syncState();
+    });
+
+    canvas.addEventListener("click", event => {
+      if (event.target === canvas || event.target === connections) {
+        selectedId = null;
+        personForm.reset();
+        $("personId").value = "";
+        render();
+      }
+    });
+
+    function beginDrag(event) {
+      const card = event.currentTarget;
+      const person = state.people.find(item => item.id === card.dataset.id);
+      if (!person) return;
+
+      card.setPointerCapture(event.pointerId);
+
+      dragging = {
+        person,
+        card,
+        startX: event.clientX,
+        startY: event.clientY,
+        originalX: person.x,
+        originalY: person.y,
+        moved: false
+      };
+
+      card.addEventListener("pointermove", moveDrag);
+      card.addEventListener("pointerup", endDrag, { once: true });
+    }
+
+    function moveDrag(event) {
+      if (!dragging) return;
+
+      const dx = event.clientX - dragging.startX;
+      const dy = event.clientY - dragging.startY;
+
+      if (Math.abs(dx) + Math.abs(dy) > 4) dragging.moved = true;
+
+      dragging.person.x = Math.max(10, dragging.originalX + dx);
+      dragging.person.y = Math.max(10, dragging.originalY + dy);
+
+      dragging.card.style.left = `${dragging.person.x}px`;
+      dragging.card.style.top = `${dragging.person.y}px`;
+
+      drawConnections();
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging.card.removeEventListener("pointermove", moveDrag);
+      syncState("Posición guardada");
+      dragging = null;
+    }
+
+    function cardCenter(person) {
+      const card = canvas.querySelector(`[data-id="${person.id}"]`);
+      if (!card) return { x: person.x, y: person.y };
+      return {
+        x: person.x + card.offsetWidth / 2,
+        y: person.y + card.offsetHeight / 2
+      };
+    }
+
+    function drawConnections() {
+      connections.innerHTML = "";
+
+      for (const relation of state.relations) {
+        const fromPerson = state.people.find(person => person.id === relation.from);
+        const toPerson = state.people.find(person => person.id === relation.to);
+        if (!fromPerson || !toPerson) continue;
+
+        const a = cardCenter(fromPerson);
+        const b = cardCenter(toPerson);
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+        if (relation.type === "parent") {
+          const middleY = a.y + (b.y - a.y) / 2;
+          path.setAttribute(
+            "d",
+            `M ${a.x} ${a.y} C ${a.x} ${middleY}, ${b.x} ${middleY}, ${b.x} ${b.y}`
+          );
+          path.setAttribute("stroke", "#667085");
+          path.setAttribute("stroke-width", "3");
+        } else {
+          path.setAttribute("d", `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
+          path.setAttribute("stroke", "#e11d48");
+          path.setAttribute("stroke-width", "4");
+          path.setAttribute("stroke-dasharray", "8 7");
+        }
+
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke-linecap", "round");
+        connections.appendChild(path);
+      }
+    }
+
+    $("exportData").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], {
+        type: "application/json"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "arbol-genealogico.json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showStatus("Respaldo exportado");
+    });
+
+    $("importData").addEventListener("click", () => $("importFile").click());
+
+    $("importFile").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const imported = JSON.parse(await file.text());
+
+        if (!Array.isArray(imported.people) || !Array.isArray(imported.relations)) {
+          throw new Error("Formato inválido");
+        }
+
+        state = imported;
+        selectedId = null;
+        personForm.reset();
+        render();
+        await syncState("Árbol importado");
+      } catch (error) {
+        alert("El archivo no es un respaldo válido.");
+      }
+
+      event.target.value = "";
+    });
+
+    $("resetAll").addEventListener("click", () => {
+      if (!confirm("¿Borrar todo el árbol genealógico? Esta acción no se puede deshacer.")) return;
+
+      state = { people: [], relations: [] };
+      selectedId = null;
+      personForm.reset();
+      render();
+      syncState("Árbol borrado");
+    });
+
+    window.addEventListener("resize", drawConnections);
+
+    async function startApp() {
+      try {
+        const loadedFromSupabase = await loadStateFromSupabase();
+        render();
+        showStatus(loadedFromSupabase ? "Árbol cargado de Supabase" : "Árbol cargado");
+      } catch (error) {
+        console.error("No se pudo cargar desde Supabase:", error);
+        render();
+        showStatus("No se pudo cargar Supabase");
+      }
+    }
+
+    startApp();
+  </script>
+</body>
+</html>
