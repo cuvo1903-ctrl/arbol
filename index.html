@@ -421,7 +421,7 @@
   <script>
     const SUPABASE_URL = "https://ckfnknwoqqlftmvzuzsm.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrZm5rbndvcXFsZnRtdnp1enNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTA5NDIsImV4cCI6MjEwMDQ4Njk0Mn0.hJ3wOifeWQcJr_aylG8KEQvl7JhrzM5GBxiafbnOLy8";
-    const TREE_ID = "arbol-genealogico-principal";
+    const DEFAULT_TREE_ID = "arbol-genealogico-principal";
     const supabaseClient = window.supabase && !SUPABASE_URL.includes("PEGA_AQUI")
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           auth: {
@@ -437,6 +437,7 @@
       relations: []
     };
 
+    let activeTreeId = DEFAULT_TREE_ID;
     let selectedId = null;
     let dragging = null;
 
@@ -461,7 +462,7 @@
       const { error } = await supabaseClient
         .from("family_trees")
         .upsert({
-          id: TREE_ID,
+          id: activeTreeId,
           name: "Árbol genealógico",
           data: state,
           updated_at: new Date().toISOString()
@@ -473,15 +474,30 @@
     async function loadStateFromSupabase() {
       if (!supabaseClient) return false;
 
-      const { data, error } = await supabaseClient
+      const { data: selectedTree, error: selectedError } = await supabaseClient
         .from("family_trees")
-        .select("data")
-        .eq("id", TREE_ID)
+        .select("id,data")
+        .eq("id", DEFAULT_TREE_ID)
         .maybeSingle();
 
-      if (error) throw error;
+      if (selectedError) throw selectedError;
+
+      let data = selectedTree;
+
+      if (!data) {
+        const { data: latestTree, error } = await supabaseClient
+          .from("family_trees")
+          .select("id,data,updated_at")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+        data = latestTree;
+      }
 
       if (data?.data && Array.isArray(data.data.people) && Array.isArray(data.data.relations)) {
+        activeTreeId = data.id || DEFAULT_TREE_ID;
         state = data.data;
         return true;
       }
