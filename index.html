@@ -217,6 +217,81 @@
       gap: 9px;
     }
 
+    .relation-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .relation-group {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .relation-group-toggle {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px;
+      border: 0;
+      background: #fbfcff;
+      color: #313b57;
+      cursor: pointer;
+      font-size: .72rem;
+      font-weight: 850;
+      text-align: left;
+    }
+
+    .relation-group-toggle::after {
+      content: "⌄";
+      color: var(--muted);
+      font-size: .95rem;
+      transition: transform .18s ease;
+    }
+
+    .relation-group-toggle[aria-expanded="true"]::after {
+      transform: rotate(180deg);
+    }
+
+    .relation-group-panel {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .relation-item {
+      display: grid;
+      gap: 8px;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+
+    .relation-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .relation-item-title {
+      color: #313b57;
+      font-size: .72rem;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .relation-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -353,7 +428,7 @@
 
     .mobile-editor-menu {
       display: none;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr auto;
       gap: 8px;
       margin-bottom: 14px;
       padding-bottom: 14px;
@@ -362,6 +437,10 @@
 
     .editor-tab {
       min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       border: 1px solid var(--border);
       border-radius: 10px;
       background: #fff;
@@ -371,11 +450,32 @@
       cursor: pointer;
     }
 
+    .editor-tab::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform .18s ease;
+    }
+
+    .editor-tab.active::before {
+      transform: rotate(225deg);
+    }
+
     .editor-tab.active {
       color: #fff;
       border-color: var(--accent);
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       box-shadow: 0 8px 18px rgba(87, 71, 232, .18);
+    }
+
+    .mobile-close-panel {
+      display: none;
+      width: 42px;
+      min-height: 42px;
+      padding: 0;
     }
 
     .workspace {
@@ -390,6 +490,12 @@
       background-size: 18px 18px;
       scrollbar-width: thin;
       scrollbar-color: #aeb6c8 transparent;
+      touch-action: pan-x pan-y;
+      cursor: grab;
+    }
+
+    .workspace.panning {
+      cursor: grabbing;
     }
 
     #canvas {
@@ -397,6 +503,8 @@
       width: 2200px;
       height: 1400px;
       transform-origin: 0 0;
+      touch-action: pan-x pan-y;
+      will-change: transform;
     }
 
     #connections {
@@ -664,6 +772,26 @@
         border-bottom: 1px solid var(--border);
       }
 
+      body.mobile-editor-open {
+        overflow: hidden;
+      }
+
+      body.mobile-editor-open aside {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-height: none;
+        overflow: auto;
+        padding: 16px;
+        background: var(--panel);
+        border: 0;
+        z-index: 90;
+      }
+
+      body.mobile-editor-open .mobile-close-panel {
+        display: inline-flex;
+      }
+
       .mobile-editor-menu {
         display: grid;
         position: sticky;
@@ -696,8 +824,8 @@
   <div class="auth-screen" id="authScreen">
     <form class="auth-panel" id="loginForm">
       <div class="auth-logo">♧</div>
-      <h2>Árbol genealógico privado</h2>
-      <p>Inicia sesión para consultar y editar la historia de tu familia.</p>
+      <h2>ADVERTENCIA PRIVADO</h2>
+      <p>Inicia sesión para consultar y editar el arbol familiar.</p>
 
       <label for="loginEmail">Correo</label>
       <input id="loginEmail" type="email" autocomplete="username" required />
@@ -714,39 +842,37 @@
       <div class="brand-mark">♧</div>
       <div>
         <h1>Árbol genealógico</h1>
-        <p>Crea y organiza tu historia familiar</p>
+        <p>Developed by Turin y la Vaquita con tecnología de la NASA.</p>
       </div>
     </header>
 
     <header class="topbar">
       <div class="topbar-group">
         <button class="btn btn-soft btn-icon" type="button" title="Panel">☰</button>
-        <button class="btn btn-soft" type="button" onclick="document.getElementById('newPerson').click()">＋ Persona</button>
         <button class="btn btn-soft" type="button" onclick="document.getElementById('autoLayout').click()">↕ Ordenar árbol</button>
+        <button class="btn btn-soft" id="openActionsPanel" type="button">Acciones</button>
+        <button class="btn btn-soft" id="openRelationsPanel" type="button">Editar relaciones</button>
         <div class="topbar-title">
-          <strong>Vista familiar</strong>
-          <span>Parejas, progenitores y descendencia organizados por generaciones</span>
+          <strong>Diagrama</strong>
+          <span>Visualización familiar</span>
         </div>
-      </div>
-      <div class="topbar-group">
-        <button class="btn btn-soft" type="button" onclick="document.getElementById('exportData').click()">⇩ Exportar</button>
-        <button class="btn btn-soft btn-icon" type="button" title="Cerrar sesión" onclick="document.getElementById('logout').click()">↪</button>
       </div>
     </header>
 
     <aside>
       <div class="mobile-editor-menu" aria-label="Editor del árbol">
-        <button id="mobilePersonTab" class="editor-tab active" type="button">＋ Agregar persona</button>
-        <button id="mobileRelationTab" class="editor-tab" type="button">⌁ Agregar relación</button>
+        <button id="mobilePersonTab" class="editor-tab" type="button">Agregar persona</button>
+        <button id="mobileRelationTab" class="editor-tab" type="button">Agregar relación</button>
+        <button id="mobileClosePanel" class="btn btn-soft btn-icon mobile-close-panel" type="button" title="Cerrar panel">×</button>
       </div>
 
       <section class="section accordion-section" id="personEditorSection">
-        <button class="section-title accordion-toggle" id="personEditorToggle" type="button" aria-expanded="true" aria-controls="personEditorPanel">
+        <button class="section-title accordion-toggle" id="personEditorToggle" type="button" aria-expanded="false" aria-controls="personEditorPanel">
           <h2>Agregar persona</h2>
           <span class="section-badge">Perfil</span>
         </button>
 
-        <div class="accordion-panel" id="personEditorPanel">
+        <div class="accordion-panel" id="personEditorPanel" hidden>
         <form id="personForm">
           <input type="hidden" id="personId" />
 
@@ -808,6 +934,16 @@
         </div>
       </section>
 
+      <section class="section accordion-section" id="relationsManagerSection">
+        <button class="section-title accordion-toggle" id="relationsManagerToggle" type="button" aria-expanded="false" aria-controls="relationsManagerPanel">
+          <h2>Editar relaciones</h2>
+          <span class="section-badge">Lista</span>
+        </button>
+        <div class="accordion-panel" id="relationsManagerPanel" hidden>
+          <div class="relation-list" id="relationsList"></div>
+        </div>
+      </section>
+
       <section class="section accordion-section" id="actionsSection">
         <button class="section-title accordion-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionsPanel">
           <h2>Acciones</h2>
@@ -815,13 +951,11 @@
         </button>
         <div class="accordion-panel" id="actionsPanel" hidden>
         <div class="toolbar">
-          <button id="newPerson" class="btn btn-soft" type="button">＋ Nueva persona</button>
           <button id="deletePerson" class="btn btn-danger" type="button">⌫ Eliminar seleccionada</button>
           <button id="autoLayout" class="btn btn-soft" type="button">↕ Ordenar por generaciones</button>
           <button id="exportData" class="btn btn-soft" type="button">⇩ Guardar respaldo</button>
           <button id="importData" class="btn btn-soft" type="button">⇧ Cargar respaldo</button>
           <input id="importFile" type="file" accept=".json" hidden />
-          <button id="resetAll" class="btn btn-danger" type="button">⌫ Limpiar todo</button>
           <button id="logout" class="btn btn-soft" type="button">↪ Cerrar sesión</button>
         </div>
         </div>
@@ -876,6 +1010,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   <script>
     const SUPABASE_CONFIG_FUNCTION_URL = "https://ckfnknwoqqlftmvzuzsm.supabase.co/functions/v1/public-config";
     const DEFAULT_TREE_ID = "arbol-genealogico-principal";
+    const EDITOR_EMAIL = "usuario@familia.local";
+    const NO_EDIT_PERMISSION_MESSAGE = "Por seguridad no cuentas con permisos de edición";
     let supabaseClient = null;
 
     let state = {
@@ -886,14 +1022,26 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     let activeTreeId = DEFAULT_TREE_ID;
     let selectedId = null;
     let dragging = null;
+    let panning = null;
+    let currentSession = null;
 
     const $ = (id) => document.getElementById(id);
     const app = $("app");
     const authScreen = $("authScreen");
     const loginForm = $("loginForm");
     const personForm = $("personForm");
+    const workspace = $("workspace");
     const canvas = $("canvas");
     const connections = $("connections");
+    const zoomState = {
+      value: 1,
+      min: 0.45,
+      max: 2.2,
+      pointers: new Map(),
+      pinchStartDistance: 0,
+      pinchStartZoom: 1,
+      pinchCenter: null
+    };
 
     function uid() {
       return crypto.randomUUID
@@ -901,7 +1049,38 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         : Date.now().toString(36) + Math.random().toString(36).slice(2);
     }
 
+    function isMobileViewport() {
+      return window.matchMedia("(max-width: 760px)").matches;
+    }
+
+    function sessionEmail(session = currentSession) {
+      return (session?.user?.email || "").trim().toLowerCase();
+    }
+
+    function canEditTree(session = currentSession) {
+      return sessionEmail(session) === EDITOR_EMAIL;
+    }
+
+    function denyEdit() {
+      alert(NO_EDIT_PERMISSION_MESSAGE);
+      return false;
+    }
+
+    function requireEditPermission() {
+      return canEditTree() || denyEdit();
+    }
+
+    function syncEditPermissions() {
+      const canEdit = canEditTree();
+      document.body.classList.toggle("read-only-tree", !canEdit);
+
+      for (const element of document.querySelectorAll("[data-edit-control]")) {
+        element.setAttribute("aria-disabled", String(!canEdit));
+      }
+    }
+
     async function saveStateToSupabase() {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       if (!supabaseClient) {
         throw new Error("Supabase no está configurado.");
       }
@@ -970,6 +1149,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
 
     async function savePersonToSupabase(person) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const session = await getSession();
       if (!session) throw new Error("Sesión no encontrada.");
 
@@ -981,6 +1161,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
 
     async function deletePersonFromSupabase(id) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const session = await getSession();
       if (!session) throw new Error("Sesión no encontrada.");
 
@@ -993,17 +1174,32 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
 
     async function saveRelationToSupabase(relation) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const session = await getSession();
       if (!session) throw new Error("Sesión no encontrada.");
 
       const { error } = await supabaseClient
         .from("relations")
-        .insert(relationToRow(relation));
+        .upsert(relationToRow(relation));
+
+      if (error) throw error;
+    }
+
+    async function deleteRelationFromSupabase(id) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
+      const session = await getSession();
+      if (!session) throw new Error("Sesión no encontrada.");
+
+      const { error } = await supabaseClient
+        .from("relations")
+        .delete()
+        .eq("id", id);
 
       if (error) throw error;
     }
 
     async function saveAllToSupabase(message = "Guardado en Supabase") {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
       const session = await getSession();
       if (!session) throw new Error("Sesión no encontrada.");
 
@@ -1058,6 +1254,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       });
 
       supabaseClient.auth.onAuthStateChange((event, session) => {
+        currentSession = session || null;
+        syncEditPermissions();
+
         if (session) {
           showAuthenticatedView();
           return;
@@ -1167,6 +1366,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       const { data, error } = await supabaseClient.auth.getSession();
       if (error) throw error;
+      currentSession = data.session || null;
+      syncEditPermissions();
       return data.session;
     }
 
@@ -1309,11 +1510,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       $("emptyMessage").style.display = state.people.length ? "none" : "block";
       updatePersonSelects();
+      renderRelationsManager();
       drawConnections();
     }
 
     function updatePersonSelects() {
-      const selects = [$("fromPerson"), $("toPerson")];
+      const selects = Array.from(document.querySelectorAll("select[data-person-select], #fromPerson, #toPerson"));
       const previous = selects.map(select => select.value);
 
       for (const select of selects) {
@@ -1331,6 +1533,73 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       });
     }
 
+    function relationLabel(relation) {
+      const fromPerson = state.people.find(person => person.id === relation.from);
+      const toPerson = state.people.find(person => person.id === relation.to);
+      const typeText = relation.type === "partner" ? "pareja de" : "padre/madre de";
+      return `${fromPerson ? fullName(fromPerson) : "Persona eliminada"} es ${typeText} ${toPerson ? fullName(toPerson) : "persona eliminada"}`;
+    }
+
+    function renderRelationsManager() {
+      const list = $("relationsList");
+      if (!list) return;
+
+      if (!state.relations.length) {
+        list.innerHTML = `<div class="legend">No hay relaciones registradas.</div>`;
+        return;
+      }
+
+      const relationItemHtml = relation => `
+        <div class="relation-item" data-relation-id="${relation.id}">
+          <div class="relation-item-title">${escapeHtml(relationLabel(relation))}</div>
+
+          <div class="relation-edit-grid">
+            <select id="editFrom-${relation.id}" title="Persona 1" data-person-select data-relation-field="from"></select>
+            <select id="editTo-${relation.id}" title="Persona 2" data-person-select data-relation-field="to"></select>
+          </div>
+
+          <select id="editType-${relation.id}" title="Tipo de relacion" data-relation-field="type">
+            <option value="parent">Es padre/madre de</option>
+            <option value="partner">Es pareja de</option>
+          </select>
+
+          <div class="relation-actions">
+            <button class="btn btn-primary" type="button" data-relation-action="save">Guardar</button>
+            <button class="btn btn-danger" type="button" data-relation-action="delete">Eliminar</button>
+          </div>
+        </div>
+      `;
+
+      const relationGroupHtml = (type, title) => {
+        const relations = state.relations.filter(relation => relation.type === type);
+        return `
+          <div class="relation-group">
+            <button class="relation-group-toggle" type="button" aria-expanded="false">
+              <span>${title}</span>
+              <span class="section-badge">${relations.length}</span>
+            </button>
+            <div class="relation-group-panel" hidden>
+              ${relations.length ? relations.map(relationItemHtml).join("") : `<div class="legend">No hay relaciones de este tipo.</div>`}
+            </div>
+          </div>
+        `;
+      };
+
+      list.innerHTML = [
+        relationGroupHtml("partner", "Es pareja de:"),
+        relationGroupHtml("parent", "Es padre/madre de:")
+      ].join("");
+
+      updatePersonSelects();
+
+      for (const relation of state.relations) {
+        const item = list.querySelector(`[data-relation-id="${relation.id}"]`);
+        if (!item) continue;
+        item.querySelector('[data-relation-field="from"]').value = relation.from;
+        item.querySelector('[data-relation-field="type"]').value = relation.type;
+        item.querySelector('[data-relation-field="to"]').value = relation.to;
+      }
+    }
     function selectPerson(id) {
       selectedId = id;
       const person = state.people.find(item => item.id === id);
@@ -1492,6 +1761,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
 
     async function autoLayoutTree() {
+      if (!requireEditPermission()) return;
       const generations = calculateGenerations();
       const families = buildParentFamilies();
       const peopleByGeneration = new Map();
@@ -1604,6 +1874,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
     personForm.addEventListener("submit", async event => {
       event.preventDefault();
+      if (!requireEditPermission()) return;
 
       const id = $("personId").value;
       const data = {
@@ -1639,10 +1910,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       clearForm();
     });
 
-    $("newPerson").addEventListener("click", clearForm);
+    $("newPerson")?.addEventListener("click", clearForm);
     $("autoLayout").addEventListener("click", autoLayoutTree);
 
     $("deletePerson").addEventListener("click", async () => {
+      if (!requireEditPermission()) return;
       if (!selectedId) {
         alert("Selecciona una persona primero.");
         return;
@@ -1662,6 +1934,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
 
     $("addRelation").addEventListener("click", async () => {
+      if (!requireEditPermission()) return;
       const from = $("fromPerson").value;
       const to = $("toPerson").value;
       const type = $("relationType").value;
@@ -1696,6 +1969,81 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       showStatus("Relación agregada");
     });
 
+    $("relationsList").addEventListener("click", async event => {
+      const groupToggle = event.target.closest(".relation-group-toggle");
+      if (groupToggle) {
+        const group = groupToggle.closest(".relation-group");
+        const panel = group?.querySelector(".relation-group-panel");
+        const expanded = groupToggle.getAttribute("aria-expanded") === "true";
+
+        for (const toggle of $("relationsList").querySelectorAll(".relation-group-toggle")) {
+          toggle.setAttribute("aria-expanded", "false");
+        }
+        for (const groupPanel of $("relationsList").querySelectorAll(".relation-group-panel")) {
+          groupPanel.hidden = true;
+        }
+
+        groupToggle.setAttribute("aria-expanded", String(!expanded));
+        if (panel) panel.hidden = expanded;
+        return;
+      }
+
+      const button = event.target.closest("[data-relation-action]");
+      if (!button) return;
+
+      const item = button.closest("[data-relation-id]");
+      const relation = state.relations.find(entry => entry.id === item?.dataset.relationId);
+      if (!relation) return;
+
+      if (button.dataset.relationAction === "delete") {
+        if (!requireEditPermission()) return;
+        if (!confirm(`¿Eliminar la relación: ${relationLabel(relation)}?`)) return;
+        state.relations = state.relations.filter(entry => entry.id !== relation.id);
+        await deleteRelationFromSupabase(relation.id);
+        render();
+        showStatus("Relación eliminada");
+        return;
+      }
+
+      if (!requireEditPermission()) return;
+
+      const updated = {
+        ...relation,
+        from: item.querySelector('[data-relation-field="from"]').value,
+        type: item.querySelector('[data-relation-field="type"]').value,
+        to: item.querySelector('[data-relation-field="to"]').value
+      };
+
+      if (!updated.from || !updated.to) {
+        alert("Selecciona dos personas.");
+        return;
+      }
+
+      if (updated.from === updated.to) {
+        alert("Selecciona dos personas distintas.");
+        return;
+      }
+
+      const exists = state.relations.some(entry =>
+        entry.id !== updated.id &&
+        entry.type === updated.type &&
+        (
+          (entry.from === updated.from && entry.to === updated.to) ||
+          (updated.type === "partner" && entry.from === updated.to && entry.to === updated.from)
+        )
+      );
+
+      if (exists) {
+        alert("Esa relación ya existe.");
+        return;
+      }
+
+      Object.assign(relation, updated);
+      await saveRelationToSupabase(relation);
+      render();
+      showStatus("Relación actualizada");
+    });
+
     canvas.addEventListener("click", event => {
       if (event.target === canvas || event.target === connections) {
         selectedId = null;
@@ -1705,8 +2053,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
     });
 
+    workspace.addEventListener("pointerdown", beginCanvasPointer, { passive: false });
+    workspace.addEventListener("pointermove", moveCanvasPointer, { passive: false });
+    workspace.addEventListener("pointerup", endCanvasPointer);
+    workspace.addEventListener("pointercancel", endCanvasPointer);
+    workspace.addEventListener("wheel", zoomWithWheel, { passive: false });
+
     function beginDrag(event) {
       event.preventDefault();
+      if (!canEditTree()) return;
       const card = event.currentTarget;
       const person = state.people.find(item => item.id === card.dataset.id);
       if (!person) return;
@@ -1731,8 +2086,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       if (!dragging) return;
       event.preventDefault();
 
-      const dx = event.clientX - dragging.startX;
-      const dy = event.clientY - dragging.startY;
+      const dx = (event.clientX - dragging.startX) / zoomState.value;
+      const dy = (event.clientY - dragging.startY) / zoomState.value;
 
       if (Math.abs(dx) + Math.abs(dy) > 4) dragging.moved = true;
 
@@ -1755,6 +2110,109 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           showStatus("No se pudo guardar");
         });
       dragging = null;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function pointerDistance(points) {
+      const [first, second] = points;
+      return Math.hypot(first.x - second.x, first.y - second.y);
+    }
+
+    function pointerCenter(points) {
+      const [first, second] = points;
+      return {
+        x: (first.x + second.x) / 2,
+        y: (first.y + second.y) / 2
+      };
+    }
+
+    function setCanvasZoom(nextZoom, center) {
+      const previousZoom = zoomState.value;
+      const zoom = clamp(nextZoom, zoomState.min, zoomState.max);
+      if (Math.abs(zoom - previousZoom) < 0.001) return;
+
+      const workspaceBox = workspace.getBoundingClientRect();
+      const centerX = center ? center.x - workspaceBox.left : workspace.clientWidth / 2;
+      const centerY = center ? center.y - workspaceBox.top : workspace.clientHeight / 2;
+      const contentX = (workspace.scrollLeft + centerX) / previousZoom;
+      const contentY = (workspace.scrollTop + centerY) / previousZoom;
+
+      zoomState.value = zoom;
+      canvas.style.transform = `scale(${zoom})`;
+      workspace.scrollLeft = contentX * zoom - centerX;
+      workspace.scrollTop = contentY * zoom - centerY;
+      drawConnections();
+    }
+
+    function zoomWithWheel(event) {
+      if (!event.target.closest(".workspace")) return;
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      const factor = direction > 0 ? 1.08 : 0.92;
+      setCanvasZoom(zoomState.value * factor, { x: event.clientX, y: event.clientY });
+    }
+
+    function beginCanvasPointer(event) {
+      if (event.target.closest(".person")) return;
+
+      zoomState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (zoomState.pointers.size === 2) {
+        event.preventDefault();
+        const points = Array.from(zoomState.pointers.values());
+        zoomState.pinchStartDistance = pointerDistance(points);
+        zoomState.pinchStartZoom = zoomState.value;
+        zoomState.pinchCenter = pointerCenter(points);
+        panning = null;
+        workspace.classList.remove("panning");
+        return;
+      }
+
+      if (!isMobileViewport() && event.button === 0 && zoomState.pointers.size === 1) {
+        panning = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          scrollLeft: workspace.scrollLeft,
+          scrollTop: workspace.scrollTop
+        };
+        workspace.classList.add("panning");
+        workspace.setPointerCapture(event.pointerId);
+      }
+    }
+
+    function moveCanvasPointer(event) {
+      if (!zoomState.pointers.has(event.pointerId)) return;
+      zoomState.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (zoomState.pointers.size === 2 && zoomState.pinchStartDistance) {
+        event.preventDefault();
+        const points = Array.from(zoomState.pointers.values());
+        const distance = pointerDistance(points);
+        setCanvasZoom(zoomState.pinchStartZoom * (distance / zoomState.pinchStartDistance), pointerCenter(points));
+        return;
+      }
+
+      if (panning && panning.pointerId === event.pointerId) {
+        event.preventDefault();
+        workspace.scrollLeft = panning.scrollLeft - (event.clientX - panning.startX);
+        workspace.scrollTop = panning.scrollTop - (event.clientY - panning.startY);
+      }
+    }
+
+    function endCanvasPointer(event) {
+      zoomState.pointers.delete(event.pointerId);
+      if (panning?.pointerId === event.pointerId) {
+        panning = null;
+        workspace.classList.remove("panning");
+      }
+      if (zoomState.pointers.size < 2) {
+        zoomState.pinchStartDistance = 0;
+        zoomState.pinchCenter = null;
+      }
     }
 
     function cardCenter(person) {
@@ -1977,9 +2435,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       showStatus("Respaldo exportado");
     });
 
-    $("importData").addEventListener("click", () => $("importFile").click());
+    $("importData").addEventListener("click", () => {
+      if (!requireEditPermission()) return;
+      $("importFile").click();
+    });
 
     $("importFile").addEventListener("change", async event => {
+      if (!requireEditPermission()) {
+        event.target.value = "";
+        return;
+      }
+
       const file = event.target.files[0];
       if (!file) return;
 
@@ -2003,7 +2469,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       event.target.value = "";
     });
 
-    $("resetAll").addEventListener("click", () => {
+    $("resetAll")?.addEventListener("click", () => {
+      if (!requireEditPermission()) return;
       if (!confirm("¿Borrar todo el árbol genealógico? Esta acción no se puede deshacer.")) return;
 
       state = { people: [], relations: [] };
@@ -2065,12 +2532,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const relationToggle = document.getElementById("relationEditorToggle");
       const personPanel = document.getElementById("personEditorPanel");
       const relationPanel = document.getElementById("relationEditorPanel");
+      const relationsManagerToggle = document.getElementById("relationsManagerToggle");
+      const relationsManagerPanel = document.getElementById("relationsManagerPanel");
       const actionsToggle = document.getElementById("actionsToggle");
       const actionsPanel = document.getElementById("actionsPanel");
       const personTab = document.getElementById("mobilePersonTab");
       const relationTab = document.getElementById("mobileRelationTab");
+      const mobileClosePanel = document.getElementById("mobileClosePanel");
+      const openActionsButton = document.getElementById("openActionsPanel");
+      const openRelationsButton = document.getElementById("openRelationsPanel");
       const aside = document.querySelector("#app > aside");
       const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
+      let activeAccordion = null;
 
       function setPanelState(toggle, panel, expanded) {
         panel.hidden = !expanded;
@@ -2082,15 +2555,24 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         relationTab.classList.toggle("active", activePanel === "relation");
       }
 
+      function syncMobileOverlay(activePanel) {
+        document.body.classList.toggle(
+          "mobile-editor-open",
+          isMobile() && (activePanel === "person" || activePanel === "relation" || activePanel === "relationsManager" || activePanel === "actions")
+        );
+      }
+
       function openAccordion(panelName, options = {}) {
-        const isClosingActive = options.toggle
-          && document.getElementById(`${panelName === "person" ? "personEditor" : panelName === "relation" ? "relationEditor" : "actions"}Toggle`)?.getAttribute("aria-expanded") === "true";
+        const isClosingActive = options.toggle && activeAccordion === panelName;
         const activePanel = isClosingActive ? null : panelName;
+        activeAccordion = activePanel;
 
         setPanelState(personToggle, personPanel, activePanel === "person");
         setPanelState(relationToggle, relationPanel, activePanel === "relation");
+        setPanelState(relationsManagerToggle, relationsManagerPanel, activePanel === "relationsManager");
         setPanelState(actionsToggle, actionsPanel, activePanel === "actions");
         syncMobileTabs(activePanel);
+        syncMobileOverlay(activePanel);
 
         if (options.focus && activePanel !== "actions") {
           const target = activePanel === "person"
@@ -2110,9 +2592,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
       personToggle.addEventListener("click", () => openAccordion("person", { toggle: true }));
       relationToggle.addEventListener("click", () => openAccordion("relation", { toggle: true }));
+      relationsManagerToggle.addEventListener("click", () => openAccordion("relationsManager", { toggle: true }));
       actionsToggle.addEventListener("click", () => openAccordion("actions", { toggle: true }));
-      personTab.addEventListener("click", () => setEditorPanel("person", { focus: true }));
-      relationTab.addEventListener("click", () => setEditorPanel("relation", { focus: true }));
+      openActionsButton?.addEventListener("click", () => openAccordion("actions", { toggle: true }));
+      openRelationsButton?.addEventListener("click", () => openAccordion("relationsManager", { toggle: true }));
+      personTab.addEventListener("click", () => openAccordion("person", { toggle: true, focus: true }));
+      relationTab.addEventListener("click", () => openAccordion("relation", { toggle: true, focus: true }));
+      mobileClosePanel?.addEventListener("click", () => openAccordion(null));
 
       document.getElementById("newPerson")?.addEventListener("click", () => {
         setEditorPanel("person", { scroll: true, focus: true });
@@ -2122,7 +2608,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         setEditorPanel("relation");
       });
 
-      openAccordion("person");
+      window.addEventListener("resize", () => {
+        if (isMobile()) {
+          openAccordion(null);
+          return;
+        }
+        syncMobileOverlay(activeAccordion);
+      });
+      openAccordion(isMobile() ? null : "person");
     })();
   </script>
 
