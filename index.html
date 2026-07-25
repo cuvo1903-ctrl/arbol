@@ -2665,6 +2665,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const aside = document.querySelector("#app > aside");
       const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
       let activeAccordion = null;
+      let wasMobile = isMobile();
 
       function setPanelState(toggle, panel, expanded) {
         panel.hidden = !expanded;
@@ -2730,11 +2731,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       });
 
       window.addEventListener("resize", () => {
-        if (isMobile()) {
+        const nowMobile = isMobile();
+        if (nowMobile && !wasMobile) {
           openAccordion(null);
-          return;
+        } else {
+          syncMobileOverlay(activeAccordion);
         }
-        syncMobileOverlay(activeAccordion);
+        wasMobile = nowMobile;
       });
       openAccordion(isMobile() ? null : "person");
     })();
