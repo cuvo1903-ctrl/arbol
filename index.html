@@ -679,6 +679,89 @@
 
     .status.show { opacity: 1; transform: translateY(0); }
 
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(24, 33, 58, .34);
+      z-index: 70;
+    }
+
+    .modal-panel {
+      width: min(100%, 460px);
+      max-height: min(620px, calc(100vh - 40px));
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 13px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 24px 60px rgba(37, 46, 77, .18);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: .95rem;
+    }
+
+    .saved-layout-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .saved-layout-form label {
+      margin-top: 0;
+    }
+
+    .saved-layout-list {
+      display: grid;
+      align-content: start;
+      gap: 9px;
+      min-height: 120px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .saved-layout-item {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .saved-layout-meta strong {
+      display: block;
+      font-size: .78rem;
+      overflow-wrap: anywhere;
+    }
+
+    .saved-layout-meta span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .66rem;
+    }
+
+    .saved-layout-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
     .auth-screen {
       position: fixed;
       inset: 0;
@@ -1000,6 +1083,8 @@
         <div class="toolbar">
           <button id="deletePerson" class="btn btn-danger" type="button">Eliminar seleccionada</button>
           <button id="autoLayout" class="btn btn-soft" type="button">Ordenar por generaciones</button>
+          <button id="saveLayout" class="btn btn-soft" type="button">Guardar diseño</button>
+          <button id="openSavedLayouts" class="btn btn-soft" type="button">Diseños guardados</button>
           <button id="exportData" class="btn btn-soft" type="button">Guardar respaldo</button>
           <button id="importData" class="btn btn-soft" type="button">Cargar respaldo</button>
           <input id="importFile" type="file" accept=".json" hidden />
@@ -1034,6 +1119,25 @@
   </div>
 
   <div class="status" id="status"></div>
+
+  <div class="modal-backdrop" id="savedLayoutsModal" hidden>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="savedLayoutsTitle">
+      <div class="modal-header">
+        <h2 id="savedLayoutsTitle">Diseños guardados</h2>
+        <button id="closeSavedLayouts" class="btn btn-soft btn-icon" type="button" title="Cerrar">X</button>
+      </div>
+
+      <form class="saved-layout-form" id="saveLayoutForm">
+        <div>
+          <label for="layoutName">Nombre del diseño</label>
+          <input id="layoutName" placeholder="Ej. Diseño de la tarde" maxlength="80" />
+        </div>
+        <button class="btn btn-top-primary" type="submit">Guardar</button>
+      </form>
+
+      <div class="saved-layout-list" id="savedLayoutsList"></div>
+    </section>
+  </div>
 
   <script>
 /**
@@ -1078,6 +1182,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const authScreen = $("authScreen");
     const loginForm = $("loginForm");
     const personForm = $("personForm");
+    const saveLayoutForm = $("saveLayoutForm");
     const workspace = $("workspace");
     const canvas = $("canvas");
     const connections = $("connections");
@@ -1194,6 +1299,225 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         to: row.to_person_id,
         type: row.type
       };
+    }
+
+    function captureCurrentLayout() {
+      return state.people.map(person => ({
+        personId: person.id,
+        x: Number(person.x ?? 420),
+        y: Number(person.y ?? 250)
+      }));
+    }
+
+    function isValidLayoutCoordinate(value) {
+      return Number.isFinite(Number(value));
+    }
+
+    function calculateDefaultLayoutPositions() {
+      const originalPositions = new Map(state.people.map(person => [
+        person.id,
+        { x: person.x, y: person.y }
+      ]));
+
+      applyAutoLayoutPositions();
+
+      const defaultPositions = new Map(state.people.map(person => [
+        person.id,
+        { x: person.x, y: person.y }
+      ]));
+
+      for (const person of state.people) {
+        const original = originalPositions.get(person.id);
+        person.x = original?.x;
+        person.y = original?.y;
+      }
+
+      return defaultPositions;
+    }
+
+    function formatLayoutDate(value) {
+      if (!value) return "";
+      return new Intl.DateTimeFormat("es-MX", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(value));
+    }
+
+    async function loadSavedLayouts() {
+      const session = await getSession();
+      if (!session) throw new Error("SesiÃ³n no encontrada.");
+
+      const { data, error } = await supabaseClient
+        .from("saved_layouts")
+        .select("id,name,positions,created_at,updated_at")
+        .eq("tree_id", activeTreeId)
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    }
+
+    async function saveLayoutToSupabase(name) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
+      const trimmedName = name.trim();
+      if (!trimmedName) throw new Error("Escribe un nombre para el diseÃ±o.");
+
+      const positions = captureCurrentLayout();
+      if (!positions.length) throw new Error("No hay tarjetas para guardar.");
+
+      const session = await getSession();
+      if (!session) throw new Error("SesiÃ³n no encontrada.");
+
+      const { error } = await supabaseClient
+        .from("saved_layouts")
+        .insert({
+          tree_id: activeTreeId,
+          name: trimmedName,
+          positions,
+          created_by: session.user.id,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+    }
+
+    async function deleteSavedLayout(id) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
+      const { error } = await supabaseClient
+        .from("saved_layouts")
+        .delete()
+        .eq("id", id)
+        .eq("tree_id", activeTreeId);
+
+      if (error) throw error;
+    }
+
+    async function overwriteSavedLayout(id) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
+      const positions = captureCurrentLayout();
+      if (!positions.length) throw new Error("No hay tarjetas para guardar.");
+
+      const { error } = await supabaseClient
+        .from("saved_layouts")
+        .update({
+          positions,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id)
+        .eq("tree_id", activeTreeId);
+
+      if (error) throw error;
+    }
+
+    async function applySavedLayout(layout) {
+      if (!requireEditPermission()) throw new Error(NO_EDIT_PERMISSION_MESSAGE);
+      const positions = Array.isArray(layout.positions) ? layout.positions : [];
+      const currentIds = new Set(state.people.map(person => person.id));
+      const positionsByPerson = new Map();
+
+      for (const position of positions) {
+        const personId = position.personId || position.person_id;
+        if (!currentIds.has(personId)) continue;
+        if (!isValidLayoutCoordinate(position.x) || !isValidLayoutCoordinate(position.y)) continue;
+        positionsByPerson.set(personId, position);
+      }
+
+      const defaultPositions = positionsByPerson.size < state.people.length
+        ? calculateDefaultLayoutPositions()
+        : new Map();
+
+      let moved = 0;
+      for (const person of state.people) {
+        const position = positionsByPerson.get(person.id);
+        const defaultPosition = defaultPositions.get(person.id);
+
+        if (position) {
+          person.x = Number(position.x);
+          person.y = Number(position.y);
+          moved += 1;
+          continue;
+        }
+
+        if (!defaultPosition) continue;
+        person.x = defaultPosition.x;
+        person.y = defaultPosition.y;
+        moved += 1;
+      }
+
+      if (!moved) throw new Error("Este diseño no coincide con las tarjetas actuales.");
+
+      render();
+      await Promise.all(state.people.map(savePersonToSupabase));
+    }
+
+    async function renderSavedLayouts() {
+      const list = $("savedLayoutsList");
+      list.innerHTML = '<div class="legend">Cargando diseÃ±os...</div>';
+
+      try {
+        const layouts = await loadSavedLayouts();
+        if (!layouts.length) {
+          list.innerHTML = '<div class="legend">TodavÃ­a no hay diseÃ±os guardados.</div>';
+          return;
+        }
+
+        list.innerHTML = "";
+        for (const layout of layouts) {
+          const item = document.createElement("article");
+          item.className = "saved-layout-item";
+          item.innerHTML = `
+            <div class="saved-layout-meta">
+              <strong>${escapeHtml(layout.name)}</strong>
+              <span>${(layout.positions || []).length} tarjetas· ${formatLayoutDate(layout.updated_at)}</span>
+            </div>
+            <div class="saved-layout-actions">
+              <button class="btn btn-soft" type="button" data-layout-load="${layout.id}">Cargar</button>
+              <button class="btn btn-soft" type="button" data-layout-overwrite="${layout.id}">Sobreescribir</button>
+              <button class="btn btn-danger" type="button" data-layout-delete="${layout.id}">Eliminar</button>
+            </div>
+          `;
+
+          item.querySelector("[data-layout-load]").addEventListener("click", async () => {
+            try {
+              await applySavedLayout(layout);
+              $("savedLayoutsModal").hidden = true;
+              showStatus("Diseño cargado");
+            } catch (error) {
+              console.error("No se pudo cargar diseÃ±o:", error);
+              alert(error.message || "No se pudo cargar el diseÃ±o.");
+            }
+          });
+
+          item.querySelector("[data-layout-overwrite]").addEventListener("click", async () => {
+            if (!confirm(`Â¿Sobreescribir el diseÃ±o "${layout.name}" con la posiciÃ³n actual?`)) return;
+            try {
+              await overwriteSavedLayout(layout.id);
+              await renderSavedLayouts();
+              showStatus("DiseÃ±o sobreescrito");
+            } catch (error) {
+              console.error("No se pudo sobreescribir diseÃ±o:", error);
+              alert(error.message || "No se pudo sobreescribir el diseÃ±o.");
+            }
+          });
+
+          item.querySelector("[data-layout-delete]").addEventListener("click", async () => {
+            if (!confirm(`Â¿Eliminar el diseÃ±o "${layout.name}"?`)) return;
+            try {
+              await deleteSavedLayout(layout.id);
+              await renderSavedLayouts();
+              showStatus("DiseÃ±o eliminado");
+            } catch (error) {
+              console.error("No se pudo eliminar diseÃ±o:", error);
+              alert(error.message || "No se pudo eliminar el diseÃ±o.");
+            }
+          });
+
+          list.appendChild(item);
+        }
+      } catch (error) {
+        console.error("No se pudieron leer diseÃ±os:", error);
+        list.innerHTML = '<div class="legend">No se pudieron cargar los diseños guardados.</div>';
+      }
     }
 
     async function savePersonToSupabase(person) {
@@ -1808,8 +2132,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       });
     }
 
-    async function autoLayoutTree() {
-      if (!requireEditPermission()) return;
+    function applyAutoLayoutPositions() {
       const generations = calculateGenerations();
       const families = buildParentFamilies();
       const peopleByGeneration = new Map();
@@ -1908,6 +2231,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           person.y += offsetY;
         }
       }
+    }
+
+    async function autoLayoutTree() {
+      if (!requireEditPermission()) return;
+      applyAutoLayoutPositions();
 
       render();
 
@@ -2554,6 +2882,43 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       anchor.click();
       URL.revokeObjectURL(url);
       showStatus("Respaldo exportado");
+    });
+
+    $("saveLayout").addEventListener("click", async () => {
+      if (!requireEditPermission()) return;
+      $("savedLayoutsModal").hidden = false;
+      await renderSavedLayouts();
+      $("layoutName").focus();
+    });
+
+    $("openSavedLayouts").addEventListener("click", async () => {
+      $("savedLayoutsModal").hidden = false;
+      await renderSavedLayouts();
+    });
+
+    $("closeSavedLayouts").addEventListener("click", () => {
+      $("savedLayoutsModal").hidden = true;
+    });
+
+    $("savedLayoutsModal").addEventListener("click", event => {
+      if (event.target === $("savedLayoutsModal")) {
+        $("savedLayoutsModal").hidden = true;
+      }
+    });
+
+    saveLayoutForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!requireEditPermission()) return;
+
+      try {
+        await saveLayoutToSupabase($("layoutName").value);
+        $("layoutName").value = "";
+        await renderSavedLayouts();
+        showStatus("Diseño guardado");
+      } catch (error) {
+        console.error("No se pudo guardar diseÃ±o:", error);
+        alert(error.message || "No se pudo guardar el diseÃ±o.");
+      }
     });
 
     $("importData").addEventListener("click", () => {
