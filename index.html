@@ -2261,6 +2261,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const verticalGap = 140;
       const startX = 120;
       const startY = 90;
+      const personById = new Map(state.people.map(person => [person.id, person]));
       const personRoot = new Map(state.people.map(person => [person.id, person.id]));
 
       function findRoot(id) {
@@ -2285,7 +2286,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         if (relation.type === "partner") unionPeople(relation.from, relation.to);
       }
 
-      for (const family of families) {
+      const normalizedFamilies = families.map((family, index) => ({
+        id: `family-${index}-${family.parents.join("-") || "single"}`,
+        parents: [...new Set(family.parents)].filter(id => personById.has(id)),
+        children: [...new Set(family.children)].filter(id => personById.has(id))
+      })).filter(family => family.parents.length && family.children.length);
+
+      for (const family of normalizedFamilies) {
         for (let index = 1; index < family.parents.length; index++) {
           unionPeople(family.parents[0], family.parents[index]);
         }
@@ -2314,7 +2321,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         for (const member of unit.members) unitByPerson.set(member.id, unit);
       }
 
-      for (const family of families) {
+      for (const family of normalizedFamilies) {
         const parentUnit = family.parents.map(id => unitByPerson.get(id)).find(Boolean);
         if (!parentUnit) continue;
 
@@ -2327,6 +2334,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
 
       for (const unit of unitsByRoot.values()) {
+        unit.children = [...new Map(unit.children.map(child => [child.id, child])).values()];
         unit.children.sort((a, b) => {
           if (a.generation !== b.generation) return a.generation - b.generation;
           return fullName(a.members[0]).localeCompare(fullName(b.members[0]), "es");
@@ -2345,21 +2353,38 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
         stack.delete(unit.id);
         unit.width = Math.max(unit.cardWidth, childrenWidth);
+        if (!Number.isFinite(unit.width)) {
+          throw new Error(`Invalid family width for ${unit.id}: ${unit.width}`);
+        }
         widthCache.set(unit.id, unit.width);
         return unit.width;
       }
 
       function placeUnit(unit, left, placed) {
         if (placed.has(unit.id)) return;
+        if (!Number.isFinite(left)) {
+          throw new Error(`Invalid family X for ${unit.id}: ${left}`);
+        }
         placed.add(unit.id);
 
         const width = subtreeWidth(unit);
         const center = left + width / 2;
         const unitLeft = center - unit.cardWidth / 2;
 
+        if (!Number.isFinite(unitLeft)) {
+          throw new Error(`Invalid family X for ${unit.id}: ${unitLeft}`);
+        }
+
         unit.members.forEach((person, index) => {
-          person.x = unitLeft + index * (cardWidth + coupleGap);
-          person.y = startY + unit.generation * verticalGap;
+          if (positionedPeople.has(person.id)) return;
+          const nextX = unitLeft + index * (cardWidth + coupleGap);
+          const nextY = startY + unit.generation * verticalGap;
+          if (!Number.isFinite(nextX) || !Number.isFinite(nextY)) {
+            throw new Error(`Invalid node position for ${fullName(person)} (${person.id}): ${nextX}, ${nextY}`);
+          }
+          person.x = nextX;
+          person.y = nextY;
+          positionedPeople.add(person.id);
         });
 
         const childrenWidth = unit.children.reduce((sum, child, index) => (
@@ -2380,23 +2405,139 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           return fullName(a.members[0]).localeCompare(fullName(b.members[0]), "es");
         });
 
+      const rootFamilies = roots.filter(unit => {
+        const connectedThroughPartner = unit.members.some(person =>
+          state.relations.some(relation =>
+            relation.type === "partner" &&
+            (relation.from === person.id || relation.to === person.id) &&
+            unit.parents.size > 0
+          )
+        );
+        return !connectedThroughPartner;
+      });
+
       const placed = new Set();
+      const positionedPeople = new Set();
       let cursorX = startX;
-      for (const root of roots) {
+      for (const root of rootFamilies) {
         placeUnit(root, cursorX, placed);
         cursorX += subtreeWidth(root) + familyGap;
+        if (!Number.isFinite(cursorX)) {
+          throw new Error(`Invalid root cursor X after ${root.id}: ${cursorX}`);
+        }
       }
 
       for (const unit of unitsByRoot.values()) {
         if (placed.has(unit.id)) continue;
         placeUnit(unit, cursorX, placed);
         cursorX += subtreeWidth(unit) + familyGap;
+        if (!Number.isFinite(cursorX)) {
+          throw new Error(`Invalid root cursor X after ${unit.id}: ${cursorX}`);
+        }
       }
+
+      const uniqueNodes = [
+        ...new Map(state.people.map(node => [node.id, node])).values()
+      ];
+      const invalidNode = uniqueNodes.find(node =>
+        !Number.isFinite(Number(node.x)) || !Number.isFinite(Number(node.y))
+      );
+      if (invalidNode) {
+        throw new Error(`Invalid node position for ${fullName(invalidNode)} (${invalidNode.id}): ${invalidNode.x}, ${invalidNode.y}`);
+      }
+
+      const minX = Math.min(...uniqueNodes.map(node => Number(node.x)));
+      const offsetX = startX - minX;
+      for (const node of uniqueNodes) {
+        node.x = Number(node.x) + offsetX;
+      }
+
+      const nodes = uniqueNodes.map(node => {
+        const unit = unitByPerson.get(node.id);
+        return {
+          id: node.id,
+          name: fullName(node),
+          x: Number(node.x),
+          y: Number(node.y),
+          generation: generations.get(node.id) ?? 0,
+          familyId: unit?.id || null
+        };
+      });
+      const treeWidth = Math.max(...uniqueNodes.map(node => Number(node.x) + cardWidth)) + startX;
+
+      console.table(
+        nodes
+          .map(node => ({
+            id: node.id,
+            name: node.name,
+            x: node.x,
+            y: node.y,
+            generation: node.generation,
+            familyId: node.familyId
+          }))
+          .sort((a, b) => b.x - a.x)
+      );
+      console.log("minX", Math.min(...nodes.map(node => node.x)));
+      console.log("maxX", Math.max(...nodes.map(node => node.x)));
+      console.log("treeWidth", treeWidth);
+      console.log("roots", rootFamilies);
+    }
+
+    function logAutoLayoutDiagnostics() {
+      if (!state.people.length) return;
+      const rows = state.people.map(person => ({
+        name: fullName(person),
+        x: Number(person.x),
+        y: Number(person.y)
+      }));
+      const maxNode = rows.reduce((max, row) => row.x > max.x ? row : max, rows[0]);
+      const minX = Math.min(...rows.map(row => row.x));
+      const maxX = Math.max(...rows.map(row => row.x + 190));
+      console.info("Layout automatico:", {
+        maxNode,
+        width: Math.round(maxX - minX),
+        nodes: rows.length
+      });
+    }
+
+    function resizeCanvasToTree() {
+      if (!state.people.length) return;
+
+      const cardWidth = 190;
+      const cardHeight = 130;
+      const padding = 160;
+      const maxX = Math.max(...state.people.map(person => Number(person.x) + cardWidth));
+      const maxY = Math.max(...state.people.map(person => Number(person.y) + cardHeight));
+      const width = Math.max(2200, Math.ceil(maxX + padding));
+      const height = Math.max(1400, Math.ceil(maxY + padding));
+
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      connections.setAttribute("width", String(width));
+      connections.setAttribute("height", String(height));
+      connections.style.width = `${width}px`;
+      connections.style.height = `${height}px`;
     }
 
     async function autoLayoutTree() {
       if (!requireEditPermission()) return;
-      applyFamilyAutoLayoutPositions();
+      try {
+        // Esta versión compacta por generaciones y conserva parejas juntas.
+        // La versión recursiva por subárboles generaba anchos desproporcionados
+        // al reutilizar unidades familiares en ramas con varias relaciones.
+        applyAutoLayoutPositions();
+
+        zoomState.value = 1;
+        canvas.style.transform = "scale(1)";
+        resizeCanvasToTree();
+        workspace.scrollLeft = 0;
+        workspace.scrollTop = 0;
+        logAutoLayoutDiagnostics();
+      } catch (error) {
+        console.error("No se pudo ordenar el arbol:", error);
+        showStatus("No se pudo ordenar");
+        return;
+      }
 
       render();
 
@@ -2838,15 +2979,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const card = canvas.querySelector(`[data-id="${person.id}"]`);
       const width = card?.offsetWidth || 190;
       const height = card?.offsetHeight || 118;
+      const x = Number.isFinite(Number(person.x)) ? Number(person.x) : 420;
+      const y = Number.isFinite(Number(person.y)) ? Number(person.y) : 250;
       return {
-        left: person.x,
-        top: person.y,
-        right: person.x + width,
-        bottom: person.y + height,
+        left: x,
+        top: y,
+        right: x + width,
+        bottom: y + height,
         width,
         height,
-        centerX: person.x + width / 2,
-        centerY: person.y + height / 2
+        centerX: x + width / 2,
+        centerY: y + height / 2
       };
     }
 
