@@ -1319,7 +1319,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         { x: person.x, y: person.y }
       ]));
 
-      applyAutoLayoutPositions();
+      applyFamilyAutoLayoutPositions();
 
       const defaultPositions = new Map(state.people.map(person => [
         person.id,
@@ -2038,6 +2038,24 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           }
         }
 
+        for (const relation of state.relations) {
+          if (relation.type !== "partner") continue;
+          const partnerGeneration = Math.max(
+            generations.get(relation.from) ?? 0,
+            generations.get(relation.to) ?? 0
+          );
+
+          if ((generations.get(relation.from) ?? 0) !== partnerGeneration) {
+            generations.set(relation.from, partnerGeneration);
+            changed = true;
+          }
+
+          if ((generations.get(relation.to) ?? 0) !== partnerGeneration) {
+            generations.set(relation.to, partnerGeneration);
+            changed = true;
+          }
+        }
+
         for (const relation of parentRelations) {
           const parentGeneration = generations.get(relation.from) ?? 0;
           const childGeneration = generations.get(relation.to) ?? 0;
@@ -2233,9 +2251,152 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
     }
 
+    function applyFamilyAutoLayoutPositions() {
+      const generations = calculateGenerations();
+      const families = buildParentFamilies();
+      const cardWidth = 190;
+      const coupleGap = 56;
+      const siblingGap = 64;
+      const familyGap = 88;
+      const verticalGap = 140;
+      const startX = 120;
+      const startY = 90;
+      const personRoot = new Map(state.people.map(person => [person.id, person.id]));
+
+      function findRoot(id) {
+        let root = id;
+        while (personRoot.get(root) !== root) root = personRoot.get(root);
+        while (personRoot.get(id) !== id) {
+          const next = personRoot.get(id);
+          personRoot.set(id, root);
+          id = next;
+        }
+        return root;
+      }
+
+      function unionPeople(a, b) {
+        if (!personRoot.has(a) || !personRoot.has(b)) return;
+        const rootA = findRoot(a);
+        const rootB = findRoot(b);
+        if (rootA !== rootB) personRoot.set(rootB, rootA);
+      }
+
+      for (const relation of state.relations) {
+        if (relation.type === "partner") unionPeople(relation.from, relation.to);
+      }
+
+      for (const family of families) {
+        for (let index = 1; index < family.parents.length; index++) {
+          unionPeople(family.parents[0], family.parents[index]);
+        }
+      }
+
+      const unitsByRoot = new Map();
+      for (const person of state.people) {
+        const root = findRoot(person.id);
+        if (!unitsByRoot.has(root)) {
+          unitsByRoot.set(root, {
+            id: root,
+            members: [],
+            children: [],
+            parents: new Set(),
+            width: 0
+          });
+        }
+        unitsByRoot.get(root).members.push(person);
+      }
+
+      const unitByPerson = new Map();
+      for (const unit of unitsByRoot.values()) {
+        unit.members.sort((a, b) => fullName(a).localeCompare(fullName(b), "es"));
+        unit.generation = Math.max(...unit.members.map(person => generations.get(person.id) ?? 0));
+        unit.cardWidth = unit.members.length * cardWidth + Math.max(0, unit.members.length - 1) * coupleGap;
+        for (const member of unit.members) unitByPerson.set(member.id, unit);
+      }
+
+      for (const family of families) {
+        const parentUnit = family.parents.map(id => unitByPerson.get(id)).find(Boolean);
+        if (!parentUnit) continue;
+
+        for (const childId of family.children) {
+          const childUnit = unitByPerson.get(childId);
+          if (!childUnit || childUnit === parentUnit || parentUnit.children.includes(childUnit)) continue;
+          parentUnit.children.push(childUnit);
+          childUnit.parents.add(parentUnit.id);
+        }
+      }
+
+      for (const unit of unitsByRoot.values()) {
+        unit.children.sort((a, b) => {
+          if (a.generation !== b.generation) return a.generation - b.generation;
+          return fullName(a.members[0]).localeCompare(fullName(b.members[0]), "es");
+        });
+      }
+
+      const widthCache = new Map();
+      function subtreeWidth(unit, stack = new Set()) {
+        if (widthCache.has(unit.id)) return widthCache.get(unit.id);
+        if (stack.has(unit.id)) return unit.cardWidth;
+        stack.add(unit.id);
+
+        const childrenWidth = unit.children.reduce((sum, child, index) => (
+          sum + subtreeWidth(child, stack) + (index ? siblingGap : 0)
+        ), 0);
+
+        stack.delete(unit.id);
+        unit.width = Math.max(unit.cardWidth, childrenWidth);
+        widthCache.set(unit.id, unit.width);
+        return unit.width;
+      }
+
+      function placeUnit(unit, left, placed) {
+        if (placed.has(unit.id)) return;
+        placed.add(unit.id);
+
+        const width = subtreeWidth(unit);
+        const center = left + width / 2;
+        const unitLeft = center - unit.cardWidth / 2;
+
+        unit.members.forEach((person, index) => {
+          person.x = unitLeft + index * (cardWidth + coupleGap);
+          person.y = startY + unit.generation * verticalGap;
+        });
+
+        const childrenWidth = unit.children.reduce((sum, child, index) => (
+          sum + subtreeWidth(child) + (index ? siblingGap : 0)
+        ), 0);
+        let childLeft = center - childrenWidth / 2;
+
+        for (const child of unit.children) {
+          placeUnit(child, childLeft, placed);
+          childLeft += subtreeWidth(child) + siblingGap;
+        }
+      }
+
+      const roots = [...unitsByRoot.values()]
+        .filter(unit => unit.parents.size === 0)
+        .sort((a, b) => {
+          if (a.generation !== b.generation) return a.generation - b.generation;
+          return fullName(a.members[0]).localeCompare(fullName(b.members[0]), "es");
+        });
+
+      const placed = new Set();
+      let cursorX = startX;
+      for (const root of roots) {
+        placeUnit(root, cursorX, placed);
+        cursorX += subtreeWidth(root) + familyGap;
+      }
+
+      for (const unit of unitsByRoot.values()) {
+        if (placed.has(unit.id)) continue;
+        placeUnit(unit, cursorX, placed);
+        cursorX += subtreeWidth(unit) + familyGap;
+      }
+    }
+
     async function autoLayoutTree() {
       if (!requireEditPermission()) return;
-      applyAutoLayoutPositions();
+      applyFamilyAutoLayoutPositions();
 
       render();
 
