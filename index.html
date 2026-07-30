@@ -523,8 +523,8 @@
       width: 190px;
       min-height: 96px;
       padding: 13px;
-      background: rgba(255,255,255,.98);
-      border: 1px solid #dce1eb;
+      background: var(--generation-bg, rgba(255,255,255,.98));
+      border: 2px solid var(--generation-color, #dce1eb);
       border-radius: 12px;
       box-shadow: var(--shadow);
       cursor: grab;
@@ -535,15 +535,14 @@
     }
 
     .person:hover {
-      border-color: #c8cfdd;
+      border-color: var(--generation-color, #c8cfdd);
       box-shadow: 0 15px 34px rgba(37, 46, 77, .14);
     }
 
     .person:active { cursor: grabbing; }
 
     .person.selected {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(87, 71, 232, .18), 0 15px 34px rgba(37, 46, 77, .14);
+      box-shadow: 0 0 0 3px rgba(87, 71, 232, .20), 0 15px 34px rgba(37, 46, 77, .14);
     }
 
     .person-header {
@@ -1850,7 +1849,36 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       return death ? `${birth} — ${death}` : `Nac. ${birth}`;
     }
 
+    const generationColors = [
+      "#5A48E9",
+      "#F2C94C",
+      "#16A085",
+      "#E85D8E",
+      "#7A9E2F",
+      "#A65C2E"
+    ];
+
+    const generationBackgrounds = [
+      "#EFEDFF",
+      "#FFF6D2",
+      "#DDF6F1",
+      "#FFE4ED",
+      "#EEF7D9",
+      "#F7E7DC"
+    ];
+
+    function generationBorderColor(generation) {
+      const index = Math.abs(Number(generation) || 0) % generationColors.length;
+      return generationColors[index];
+    }
+
+    function generationCardBackground(generation) {
+      const index = Math.abs(Number(generation) || 0) % generationBackgrounds.length;
+      return generationBackgrounds[index];
+    }
+
     function render() {
+      const generations = calculateGenerations();
       canvas.querySelectorAll(".person").forEach(node => node.remove());
 
       for (const person of state.people) {
@@ -1859,6 +1887,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         card.dataset.id = person.id;
         card.style.left = `${person.x ?? 420}px`;
         card.style.top = `${person.y ?? 250}px`;
+        const generation = generations.get(person.id);
+        card.style.setProperty("--generation-color", generationBorderColor(generation));
+        card.style.setProperty("--generation-bg", generationCardBackground(generation));
 
         card.innerHTML = `
           <div class="person-header">
